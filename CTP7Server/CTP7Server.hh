@@ -167,7 +167,7 @@ private:
   // Helper functions
 
   bool getFunctionType(char function[10], 
-		       functionType functionType);
+		       functionType &functionType);
   
 
   bool getData(unsigned int address, 

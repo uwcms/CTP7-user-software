@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <ostream>
+#include <iostream>
 
 #define MAX_BUFFER_SIZE 8192
 
@@ -17,7 +19,7 @@ int main(int argc, char **argv)
   int status;
   struct addrinfo host_info; // The struct that getaddrinfo() fills up with data.
   struct addrinfo *host_info_list; // Pointer to the to the linked list of host_info's.
-
+  std::cout<<"Here2"<<std::endl;
   // The MAN page of getaddrinfo() states "All  the other fields in the structure pointed
   // to by hints must contain either 0 or a null pointer, as appropriate." When a struct
   // is created in c++, it will be given a block of memory. This memory is not nessesary

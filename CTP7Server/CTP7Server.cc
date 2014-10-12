@@ -489,7 +489,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   unsigned int argc = 0;
   unsigned int argv[6];
 
-  cout<<"iMessage: "<<iMessage<<endl;
+  cout<<"iMessage: "<<iMessage<<" function: "<< function<<endl;
 
   if(!parseMessage(iMessage, argc, argv, oMessage)) {
     strcpy(oMessage, "ERROR_FAIL_TO_PARSE");
@@ -503,6 +503,8 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   if(!getFunctionType(function,functionType))
     return strlen(oMessage);
 
+  if(functionType==ERROR)
+    std::cout<<"FunctionType == ERROR!!"<<std::endl;
   switch(functionType)
     {
 
@@ -511,12 +513,12 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
 	strcpy(oMessage, "ERROR_WRONG_NARGS");
 	break;
       }
+      std::cout<<"Got to GetAddress"<<std::endl;
       value = getAddress((BufferType) argv[0], argv[1], argv[2]);
       sprintf(oMessage, "%X", value);
       sprintf((char*)oData, "%X", value);
       dataArray[0]=value;
       break;
-      
     case(GetRegister):
       if(argc == 1) {
 	value = getRegister(argv[0]);
@@ -624,7 +626,6 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       else
 	strcpy(oMessage, "FAILED_COUNTER_RESET");
       break;
-
     case(ERROR):
       strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
       break;      
@@ -701,10 +702,14 @@ bool CTP7Server::poke(unsigned int address, unsigned int value)
   return false;
 }
 
-bool CTP7Server::getFunctionType(char function[10], functionType functionType)
+bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
 {
+  //Add in \0 or something to end function lenght
+  strcat(function,"\0");
+  std::cout<<"function :"<<function <<std::endl;
+  functionType = ERROR;
 
-  if(strncmp(function,      "getAddress", 10) == 0) 
+  if(strncmp(function,      "getAddress", 5) == 0)
     functionType = GetAddress;
   else if(strncmp(function, "getRegister", 10) == 0) 
     functionType = GetRegister;
@@ -728,8 +733,9 @@ bool CTP7Server::getFunctionType(char function[10], functionType functionType)
     functionType = SetPattern;
   else if(strncmp(function, "SoftReset", 10) == 0) 
     functionType = SoftReset;
-  else
-    functionType = ERROR;
+
+  if(functionType==ERROR)
+    std::cout<<"function type is error!!!:("<<std::endl;
 
   return true;
 }

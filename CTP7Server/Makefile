@@ -2,8 +2,8 @@
 #ifdef PETA
 
 PETADIST=$(PETALINUX)/software/petalinux-dist
-PETACTP7MEMSVC=libmemsvc/
-CC=$(PETALINUX)/tools/linux-i386/arm-xilinx-linux-gnueabi/bin/arm-xilinx-linux-gnueabi-c++
+PETACTP7MEMSVC=../libmemsvc/
+CC=/afs/hep.wisc.edu/cms/sw/Xilinx_2014_2/SDK/2014.2/gnu/arm/lin/bin/arm-xilinx-linux-gnueabi-c++
 
 CXX=$(CC)
 
@@ -24,8 +24,8 @@ LDFLAGS= -L$(PETADIST)/lib -L$(PETADIST)/stage/lib \
          -L$(PETACTP7MEMSVC) -lmemsvc \
          -static
 
-LIBDIR = ../pl-lib
-BINDIR = ../pl-bin
+LIBDIR = ../../pl-lib
+BINDIR = ../../pl-bin
 SHLIB=
 #else
 #CFLAGS = -g -DLINUX -fPIC -I $(VMEDIR)/include -I $(RCTCOREDIR)/include
@@ -33,12 +33,12 @@ SHLIB=
 #BINDIR = ../bin
 
 #SHLIB=
-#LDFLAGS=-L $(LIBDIR) -lVME -lRCTCore -lJCCTest -L /opt/xdaq/lib -lCAENVME -lCTP7Play -L$(PETACTP7MEMSVC) -lmemsvc -llog4cplus 
+LDFLAGS=-L $(LIBDIR) -L /opt/xdaq/lib -L$(PETACTP7MEMSVC) -lmemsvc
 #CXXFLAGS=-g -Wall -DLINUX -DLOG_LEVEL=0x0 -fPIC -I $(VMEDIR)/include -I $(RCTCOREDIR)/include  
 
 #endif
 
 
-include ../mkdep_makefile/config
+include ../../mkdep_makefile/config
 
 
