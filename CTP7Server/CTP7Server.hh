@@ -56,13 +56,12 @@ public:
   CTP7Server();
   virtual ~CTP7Server();
 
-
-
   /*
     Enumerator for possible functions:
   */
 
   enum functionType{
+    GetLinkID,
     GetAddress,
     GetRegister,
     DumpContiguousBuffer,
@@ -75,6 +74,8 @@ public:
     SetRandomPattern,
     SoftReset,
     CounterReset,
+    Capture,
+    CheckConnection,
     ERROR
   };
 
@@ -145,7 +146,7 @@ public:
   bool setRandomPattern(BufferType bufferType,
 			unsigned int linkNumber, 
 			unsigned int randomSeed);
-
+  bool capture();
   bool softReset();
   bool counterReset();
 

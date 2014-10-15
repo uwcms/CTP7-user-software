@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   int status;
   struct addrinfo host_info; // The struct that getaddrinfo() fills up with data.
   struct addrinfo *host_info_list; // Pointer to the to the linked list of host_info's.
-  std::cout<<"Here2"<<std::endl;
+
   // The MAN page of getaddrinfo() states "All  the other fields in the structure pointed
   // to by hints must contain either 0 or a null pointer, as appropriate." When a struct
   // is created in c++, it will be given a block of memory. This memory is not nessesary
@@ -120,13 +120,6 @@ int main(int argc, char **argv)
 
 	if(strncmp(incoming_char_buffer, "HANGUP", 6) != 0) {
 
-	  /*
-	    for(unsigned int i = 0; i < MAX_BUFFER_SIZE/4; i++){
-	    std::cout<<incoming_uint_buffer[i]<<" ";
-	    if(i%6==0)
-	    std::cout<<std::endl;
-	    }
-	  */
 
 	  int len = ctp7.processTCPMessage(incoming_data_buffer, 
 					   outgoing_data_buffer, 

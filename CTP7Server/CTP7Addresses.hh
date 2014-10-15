@@ -12,4 +12,7 @@
 #define RX_CRC_ERROR_CNT_RST_EN        0x62000108
 #define RX_DECODER_UNLOCKED_CNT_RST_EN 0x6200010c
 
+#define LinkIDBase 0x62000300
+#define CAPTURE    0x62000140
+
 #endif

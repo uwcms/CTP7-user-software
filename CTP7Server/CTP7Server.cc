@@ -508,17 +508,30 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   switch(functionType)
     {
 
+    case(CheckConnection):
+      strcpy(oMessage, "HelloToYou!");
+      break;
+
+    case(Capture):
+      if(!capture()){
+	std::cout<<"Error Capturing"<<std::endl;
+	strcpy(oMessage, "ERROR_CAPTURING");
+      }
+      else
+	strcpy(oMessage, "SUCCESS");
+      break;
     case(GetAddress):
       if(argc != 3){
 	strcpy(oMessage, "ERROR_WRONG_NARGS");
 	break;
       }
-      std::cout<<"Got to GetAddress"<<std::endl;
+
       value = getAddress((BufferType) argv[0], argv[1], argv[2]);
       sprintf(oMessage, "%X", value);
       sprintf((char*)oData, "%X", value);
       dataArray[0]=value;
       break;
+
     case(GetRegister):
       if(argc == 1) {
 	value = getRegister(argv[0]);
@@ -527,7 +540,17 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       else
 	strcpy(oMessage, "ERROR_WRONG_NARGS");
       break;      
-      
+
+    case(GetLinkID):
+      if(argc<2){
+	strcpy(oMessage, "ERROR_WRONG_NARGS");
+	break;
+      }
+      value = getAddress((BufferType) argv[0], 0, LinkIDBase + 4 * argv[2] );
+      sprintf(oMessage, "%X", value);
+      sprintf((char*)oData, "%X", value);
+      dataArray[0]=value;
+      break;
     case(SetRegister):
       if(argc >1 ) {
 	if(setRegister(argv[0], argv[1])) {
@@ -626,6 +649,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       else
 	strcpy(oMessage, "FAILED_COUNTER_RESET");
       break;
+
     case(ERROR):
       strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
       break;      
@@ -638,6 +662,15 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   return strlen(oMessage);
 }
 
+bool CTP7Server::capture(){
+  if(!poke( CAPTURE    , 0x0 ))
+    return false;
+  if(!poke( CAPTURE    , 0x1 ))
+    return false;
+  if(!poke( CAPTURE    , 0x0 ))
+    return false;
+  return true;
+}
 /*
  * Counter Reset
  */
@@ -704,13 +737,15 @@ bool CTP7Server::poke(unsigned int address, unsigned int value)
 
 bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
 {
-  //Add in \0 or something to end function lenght
   strcat(function,"\0");
   std::cout<<"function :"<<function <<std::endl;
   functionType = ERROR;
-
   if(strncmp(function,      "getAddress", 5) == 0)
     functionType = GetAddress;
+  else if(strncmp(function, "getLinkID", 8) == 0)
+    functionType = GetLinkID;
+  else if(strncmp(function,"capture",5) == 0)
+    functionType = Capture;
   else if(strncmp(function, "getRegister", 10) == 0) 
     functionType = GetRegister;
   else if(strncmp(function, "setPattern", 10) == 0) 
@@ -731,8 +766,10 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = SetRandomPattern;
   else if(strncmp(function, "setPattern", 10) == 0) 
     functionType = SetPattern;
-  else if(strncmp(function, "SoftReset", 10) == 0) 
+  else if(strncmp(function, "softReset", 10) == 0) 
     functionType = SoftReset;
+  else if(strncmp(function, "Hello", 5) == 0) 
+    functionType = CheckConnection;
 
   if(functionType==ERROR)
     std::cout<<"function type is error!!!:("<<std::endl;
