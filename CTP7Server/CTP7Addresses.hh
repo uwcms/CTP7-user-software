@@ -36,7 +36,6 @@
 #define TX_PATTERN_ENGINE_RESET_EN	0x62000104
 
 #define RX_CRC_ERROR_CNT_RST_EN         0x62000108
-#define RX_DECODER_UNLOCKED_CNT_RST_EN	0x6200010C
 
 #define PATTERN_GEN_BC0_EXT_EN	0x62000110
 
@@ -64,5 +63,6 @@
 #define FW_GIT_HASH             0x6201FF04
 //Firmware Git Hash Dirty Status bit
 #define FW_GIT_HASH_DIRTY       0x6201FF08
+
 
 #endif

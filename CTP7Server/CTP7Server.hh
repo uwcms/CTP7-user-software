@@ -56,32 +56,8 @@ public:
     CTP7Server();
     virtual ~CTP7Server();
     
-    /*
-     * Enumerator for possible functions:
-     */
-    
-    enum functionType{
-        GetLinkID,
-        GetAddress,
-        GetRegister,
-        DumpContiguousBuffer,
-        SetAddress,
-        SetRegister,
-        SetPattern,
-        SetConstantPattern,
-        SetIncreasingPattern,
-        SetDecreasingPattern,
-        SetRandomPattern,
-        SoftReset,
-        CounterReset,
-        Capture,
-        CheckConnection,
-        DumpStatusRegisters,
-        ERROR
-    };
-    
-    
-    // Externally accessible functions to get/set on-board buffers
+   
+    // Externally accessible functions to get/set on-board buffer
     bool printBuffer(unsigned int address, unsigned int numberOfValues, unsigned int * buffer);
     
     //Add a Check Link step here
@@ -150,30 +126,15 @@ public:
     bool capture();
     bool softReset();
     bool counterReset();
-    
+
     unsigned int processTCPMessage(void *iMessage,
                                    void *oMessage,
                                    unsigned int iMaxLength,
                                    unsigned int oMaxLength,
                                    unsigned int *dataArray=0);
     
-    
-    unsigned int statusArray[11] =
-    {
-        DECODER_LOCKED_CXP0,
-        DECODER_LOCKED_CXP1,
-        DECODER_LOCKED_CXP2,
-        CAPTURE_DONE_CXP0,
-        CAPTURE_DONE_CXP1,
-        CAPTURE_DONE_CXP2,
-        TX_PRBS_SEL,
-        RX_PRBS_SEL,
-        GT_LOOPBACK,
-        FW_DATE_CODE,
-        FW_GIT_HASH,
-        FW_GIT_HASH_DIRTY
-    }
-    
+    unsigned int statusArray(unsigned int array[12]);    
+  
 protected:
     
 private:
@@ -183,6 +144,32 @@ private:
     const CTP7Server& operator=(const CTP7Server&);
     
     // Helper functions
+
+    /*
+     * Enumerator for possible functions:
+     */
+    
+    enum functionType{
+        GetLinkID,
+        GetAddress,
+        GetRegister,
+        DumpContiguousBuffer,
+        SetAddress,
+        SetRegister,
+        SetPattern,
+        SetConstantPattern,
+        SetIncreasingPattern,
+        SetDecreasingPattern,
+        SetRandomPattern,
+        SoftReset,
+        CounterReset,
+        Capture,
+        CheckConnection,
+        DumpStatusRegisters,
+        ERROR
+    };
+    
+    bool dumpRegisterArray(unsigned int * arrayOfRegisters, unsigned int *buffer);
     
     bool getFunctionType(char function[10], 
                          functionType &functionType);
@@ -203,7 +190,8 @@ private:
                                    unsigned int iSize, unsigned int oSize);
     void addMarkers();
     void addTrailer();
-    
+
+   
     memsvc_handle_t memHandle;
     
     bool verbose;

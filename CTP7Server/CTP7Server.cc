@@ -538,9 +538,8 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                 //std::cout<<"Error Capturing"<<std::endl;
                 strcpy(oMessage, "ERROR_CAPTURING");
             }
-            else
-                strcpy(oMessage, "SUCCESS");
-            break;
+            else strcpy(oMessage, "SUCCESS");
+	  break;
             
         case(GetAddress):
 //TODO: Clearly only one of these value output methods is needed
@@ -599,7 +598,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                 if(argv[3] < oMaxLength / 4) {
                     if(dumpContiguousBuffer((BufferType) argv[0], argv[1], argv[2], argv[3],
                                             (unsigned int *) oData)) {
-                        return (argv[3] * 4);
+		      return (argv[3] * 4);
                     }
                     //TODO: Need a better defined error message
                     strcpy(oMessage, "ERROR: dumpContiguousBuffer failed mysteriously");
@@ -674,13 +673,19 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                 strcpy(oMessage, "FAILED_COUNTER_RESET");
             break;
             
+	    //TODO:Make more flexible to have options for different sets of registers to dump
         case(DumpStatusRegisters):
-            if(dumpStatus())
-                strcpy(oMessage, "SUCCESS");
-            else
-                strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
-            break;
-            
+	  unsigned int array[12]; 
+	  //defines which registers to dump
+	  statusArray(array);
+	  if(dumpRegisterArray(array,(unsigned int *) oData)){
+	    strcpy(oMessage, "SUCCESS");
+	    return 12*sizeof(int);
+	  }
+	  else
+	    strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
+	  break;
+          
         case(ERROR):
             strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
             break;
@@ -698,19 +703,6 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
     
     return strlen(oMessage);
 }
-
-/*
- *
-
-
-bool CTP7Server::dumpStatus(){
-    if(dumpContiguousBuffer((BufferType) argv[0], argv[1], argv[2], argv[3],
-                            (unsigned int *) oData)) {
-        return (argv[3] * 4);
-    }
-    
-}
-*/
 
 bool CTP7Server::capture(){
     if(!poke( CAPTURE    , 0x0 ))
@@ -786,7 +778,6 @@ bool CTP7Server::poke(unsigned int address, unsigned int value)
 /*
  * Get Function Type
  * This compares the received msg to the optional valid msg
- * if
  */
 
 bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
@@ -830,6 +821,44 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
         std::cout<<"function type is not valid!!!"<<std::endl;
     
     return true;
+}
+
+// TODO: migrate to c++11 to make use of initialization list
+// note: in normal c++ compiler it is possible to initialize
+// an array with array[2]={1,2}
+
+unsigned int CTP7Server::statusArray(unsigned int array[12])
+{
+  unsigned int i = 0;
+  array[i]   = DECODER_LOCKED_CXP0;
+  array[i++] = DECODER_LOCKED_CXP1;
+  array[i++] = DECODER_LOCKED_CXP2;
+  array[i++] = CAPTURE_DONE_CXP0;
+  array[i++] = CAPTURE_DONE_CXP1;
+  array[i++] = CAPTURE_DONE_CXP2;
+  array[i++] = TX_PRBS_SEL;
+  array[i++] = RX_PRBS_SEL;
+  array[i++] = GT_LOOPBACK;
+  array[i++] = FW_DATE_CODE;
+  array[i++] = FW_GIT_HASH;
+  array[i++] = FW_GIT_HASH_DIRTY;
+
+  return sizeof(array);
+}
+
+/*
+ * Input: array of status registers
+ * Output: array of their statuses
+ */
+
+bool CTP7Server::dumpRegisterArray(unsigned int * arrayOfRegisters, unsigned int *buffer)
+{
+  //if(!statusArray(StatusArray))
+  //std::cout<<"Error filling status array"<<std::endl;
+  for(unsigned int i = 0; i < sizeof(arrayOfRegisters); i++)
+    buffer[i] = getRegister(arrayOfRegisters[i]);
+
+  return true;
 }
 
 

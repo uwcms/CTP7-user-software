@@ -1,4 +1,5 @@
 # Cross-compiling to a Petalinux target
+#TODO Fix make clean so that it will rebuild the libraries. Currently it seems not to be doing this.
 #ifdef PETA
 
 PETADIST=$(PETALINUX)/software/petalinux-dist
