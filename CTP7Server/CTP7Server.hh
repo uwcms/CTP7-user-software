@@ -169,7 +169,7 @@ private:
         ERROR
     };
     
-    bool dumpRegisterArray(unsigned int * arrayOfRegisters, unsigned int *buffer);
+    bool dumpRegisterArray(unsigned int * arrayOfRegisters, unsigned int nStatusInts, unsigned int *buffer);
     
     bool getFunctionType(char function[10], 
                          functionType &functionType);
