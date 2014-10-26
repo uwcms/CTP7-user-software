@@ -31,7 +31,6 @@ CTP7Server::~CTP7Server() {
 }
 
 //FIX ME PROBLEM WITH MEMORY SERVICE!
-
 bool CTP7Server::getData(unsigned int address,
 						 unsigned int numberOfValues,
 						 unsigned int *buffer) {
