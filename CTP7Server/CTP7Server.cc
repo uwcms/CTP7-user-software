@@ -479,7 +479,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
     char *oMessage = (char *) oData;
     
     // Presumed guilty until proven otherwise : )
-    strcpy(oMessage, "ERROR Message Failed to Process");
+    strcpy(oMessage, "ERROR_Message_Failed_to_Process");
     
     // If prior call determined that we are getting integer data handle it
     // TODO: Not crazy about this early return statement, integrate into the switch statement?
@@ -510,19 +510,26 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
     
     if(!getFunctionType(function,functionType))
         return strlen(oMessage);
+
+	//Special Buffer Length Return for Mem dumps
+	unsigned int bufferLen = 0;
     
     if(functionType==ERROR)
         std::cout<<"FunctionType == ERROR!!"<<std::endl;
 
     /*
-     * Use a massive switch statement to process the message
+     * Switch statement to process the input message
      * and run it through the proper function
      * Order (or subset there of):
+	 * oMessage is presumed failed until SUCCESS
      * Check NArgs, if wrong return with error NArgs, if correct 
      * perform action, if success return SUCCESS via oMessage
-     * oMessage is presumed failed until SUCCESS
-     * TODO: fix NArgs return statement so it uses consistent
-     * logic.
+	 * 
+	 * Guidelines: Each operation has a check to see if it was 
+	 * successful, if not successful, return an error message
+	 *
+	 * TODO:Make dump status more flexible to have options for 
+	 * different sets of registers to dump
      */
     
     switch(functionType)
@@ -533,131 +540,130 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
             break;
             
         case(Capture):
-            if(!capture()){
-                //std::cout<<"Error Capturing"<<std::endl;
+            if(!capture())
                 strcpy(oMessage, "ERROR_CAPTURING");
-            }
-            else strcpy(oMessage, "SUCCESS");
-	  break;
+            else
+                strcpy(oMessage, "SUCCESS");
+			break;
             
         case(GetAddress):
-//TODO: Clearly only one of these value output methods is needed
-            if(argc != 3){
+            if(argc != 3)
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
-                break;
+            else{
+                value = getAddress((BufferType) argv[0], argv[1], argv[2]);
+                sprintf(oMessage, "%X", value);
+                //sprintf((char*)oData, "%X", value);
+                //dataArray[0]=value;
             }
-            value = getAddress((BufferType) argv[0], argv[1], argv[2]);
-            sprintf(oMessage, "%X", value);
-            sprintf((char*)oData, "%X", value);
-            dataArray[0]=value;
             break;
             
         case(GetRegister):
-            if(argc == 1) {
+            if(argc != 1)
+                strcpy(oMessage, "ERROR_WRONG_NARGS");
+            else{
                 value = getRegister(argv[0]);
                 sprintf(oMessage, "%X", value);
             }
-            else
-                strcpy(oMessage, "ERROR_WRONG_NARGS");
             break;
             
         case(GetLinkID):
-            if(argc < 2) {
+            if(argc != 3)
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
-                break;
+            else{
+                value = getAddress((BufferType) argv[0], 0, LinkIDBase + 4 * argv[2] );
+                sprintf(oMessage, "%X", value);
+                //sprintf((char*)oData, "%X", value);
+                //dataArray[0]=value;
             }
-            value = getAddress((BufferType) argv[0], 0, LinkIDBase + 4 * argv[2] );
-            sprintf(oMessage, "%X", value);
-            sprintf((char*)oData, "%X", value);
-            dataArray[0]=value;
             break;
             
         case(SetRegister):
-            if(argc > 1 ){
-                if(setRegister(argv[0], argv[1])) {
-                    strcpy(oMessage, "SUCCESS");
-                }
-            }
-            else
+            if(argc != 2 )
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
+            else
+                if(setRegister(argv[0], argv[1]))
+                    strcpy(oMessage, "SUCCESS");
+                else
+                    strcpy(oMessage, "ERROR_GETTING_ADDRESS");
             break;
             
         case(SetAddress):
-            if(argc == 4) {
-                if(setAddress((BufferType) argv[0], argv[1], argv[2], argv[3])) {
+            if(argc != 4)
+                strcpy(oMessage, "ERROR_WRONG_NARGS_FAILED_To_Set_Address");
+            else
+                if(setAddress((BufferType) argv[0], argv[1], argv[2], argv[3]))
                     strcpy(oMessage, "SUCCESS");
-                }
                 else
                     strcpy(oMessage, "ERROR_WRONG_NARGS_FAILED_To_Set_Address");
-            }
             break;
             
         case(DumpContiguousBuffer):
-            if(argc == 4) {
-                if(argv[3] < oMaxLength / 4) {
-                    if(dumpContiguousBuffer((BufferType) argv[0], argv[1], argv[2], argv[3],
-                                            (unsigned int *) oData)) {
-		      return (argv[3] * 4);
-                    }
-                    //TODO: Need a better defined error message
-                    strcpy(oMessage, "ERROR: dumpContiguousBuffer failed mysteriously");
-                }
-                else
-                    strcpy(oMessage, "ERROR_WRONG_NARGS");
-            }
-            break;
-            
-        case(SetConstantPattern):
-            if(argc == 3) {
-                if(setConstantPattern((BufferType) argv[0], argv[1], argv[2])) {
-                    strcpy(oMessage, "SUCCESS");
-                }
-            }
-            else
+            if(argc != 4)
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
+            else
+                if(argv[3] < oMaxLength / 4)
+                    if(dumpContiguousBuffer((BufferType) argv[0], argv[1], argv[2], argv[3],(unsigned int *) oData))
+						bufferLen = (argv[3] * 4);
+                    else
+                        strcpy(oMessage, "ERROR: dumpContiguousBuffer failed mysteriously");
+				else
+					strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
+			if(bufferLen==0)
+				bufferLen = strlen(oMessage);
+            break;
+			
+        //Begin Set Pattern
+        case(SetConstantPattern):
+            if(argc != 3)
+				strcpy(oMessage, "ERROR_WRONG_NARGS");
+			else
+                if(setConstantPattern((BufferType) argv[0], argv[1], argv[2]))
+                    strcpy(oMessage, "SUCCESS");
+				else
+					strcpy(oMessage, "ERROR_SETTING_PATTERN");
             break;
             
         case(SetIncreasingPattern):
-            if(argc == 4) {
-                if(setIncreasingPattern((BufferType) argv[0], argv[1], argv[2], argv[3])) {
-                    strcpy(oMessage, "SUCCESS");
-                }
-            }
-            else
+            if(argc != 4)
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
+			else
+                if(setIncreasingPattern((BufferType) argv[0], argv[1], argv[2], argv[3]))
+                    strcpy(oMessage, "SUCCESS");
+				else
+					strcpy(oMessage, "ERROR_SETTING_PATTERN");
             break;
             
         case(SetDecreasingPattern):
-            if(argc == 4) {
-                if(setDecreasingPattern((BufferType) argv[0], argv[1], argv[2], argv[3])) {
+            if(argc != 4)
+				strcpy(oMessage, "ERROR_WRONG_NARGS");
+			else
+                if(setDecreasingPattern((BufferType) argv[0], argv[1], argv[2], argv[3]))
                     strcpy(oMessage, "SUCCESS");
-                }
-            }
-            else
-                strcpy(oMessage, "ERROR_WRONG_NARGS");
+				else
+					strcpy(oMessage, "ERROR_SETTING_PATTERN");
             break;
             
         case(SetRandomPattern):
-            if(argc == 3) {
-                if(setRandomPattern((BufferType) argv[0], argv[1], argv[2])) {
+            if(argc != 3)
+				strcpy(oMessage, "ERROR_WRONG_NARGS");
+			else
+                if(setRandomPattern((BufferType) argv[0], argv[1], argv[2]))
                     strcpy(oMessage, "SUCCESS");
-                }
-            }
-            else
-                strcpy(oMessage, "ERROR_WRONG_NARGS");
-            break;
+				else
+					strcpy(oMessage, "ERROR_SETTING_PATTERN");
+			break;
             
         case(SetPattern):
-            if(argc < 2){
+            if(argc < 2)
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
-                break;
-            }
-            if(handlePatternData(NULL, (void *) &argv, 0, sizeof(argv)) == 0)
-                strcpy(oMessage, "READY_FOR_PATTERN_DATA");
-            else
-                strcpy(oMessage, "FAILED__NOT_READY_FOR_PATTERN_DATA");
+			else
+				if(handlePatternData(NULL, (void *) &argv, 0, sizeof(argv)) == 0)
+					strcpy(oMessage, "READY_FOR_PATTERN_DATA");
+				else
+					strcpy(oMessage, "FAILED__NOT_READY_FOR_PATTERN_DATA");
             break;
-            
+
+		//Begin system operations, no need for arg check
         case(SoftReset):
             if(softReset())
                 strcpy(oMessage, "SUCCESS");
@@ -672,24 +678,25 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                 strcpy(oMessage, "FAILED_COUNTER_RESET");
             break;
             
-	    //TODO:Make more flexible to have options for different sets of registers to dump
         case(DumpStatusRegisters):
-	  unsigned int array[12]; 
-	  //defines which registers to dump
-	  statusArray(array);
-	  if(dumpRegisterArray(array,(unsigned int *) oData)){
-	    strcpy(oMessage, "SUCCESS");
-	    return 12*sizeof(int);
-	  }
-	  else
-	    strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
-	  break;
+			//define which registers to dump
+			unsigned int array[12];
+			statusArray(array);
+			
+			if(dumpRegisterArray(array,(unsigned int *) oData))
+				bufferLen = 12 * 4;
+			else
+				strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
+
+			if(bufferLen==0)
+				bufferLen = strlen(oMessage);
+			break;
           
         case(ERROR):
             strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
             break;
 
-        //Note: We should never get to default, only adding for completeness
+        //Note: We should never get to default; included only for completeness
         default:
             strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
             break;
@@ -699,7 +706,11 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
     
     cout<<"oMessage "<< oMessage<< endl;
     oData = (void *) oMessage;
-    
+	
+	//special return statement only for dumping large buffer
+	if(functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters)
+		return bufferLen;
+		
     return strlen(oMessage);
 }
 
