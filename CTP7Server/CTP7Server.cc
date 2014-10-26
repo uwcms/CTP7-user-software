@@ -111,16 +111,15 @@ unsigned int CTP7Server::getAddress(BufferType b,
                                     unsigned int addressOffset)
 {
     unsigned int address = 0;
-    if(b == registerBuffer) {
-        address = addressOffset;
-    }
+    if(b == registerBuffer) 
+      address = addressOffset;
     else if(b == inputBuffer) {
-        if(linkNumber < NILinks && !(addressOffset % sizeof(int)) &&
-           addressOffset < NIntsPerLink * sizeof(int)) {
-            address = ILinkBaseAddress + addressOffset;
+      if(linkNumber < NILinks && !(addressOffset % sizeof(int)) &&
+	 addressOffset < NIntsPerLink * sizeof(int)) {
+	address = ILinkBaseAddress + addressOffset;
         }
-        else
-            return 0xDEADBEEF;
+      else
+	return 0xDEADBEEF;
     }
     else if(b == outputBuffer) {
         if(linkNumber < NOLinks &&
@@ -131,14 +130,14 @@ unsigned int CTP7Server::getAddress(BufferType b,
         else
             return 0xDEADBEEF;
     }
+
     unsigned int buffer;
     
-    if(getData(address, 1, &buffer)) {
+    if(getData(address, 1, &buffer)) 
         return buffer;
-    }
-    else {
-        return 0xDEADBEEF;
-    }
+
+    return 0xDEADBEEF;
+
 }
 
 bool CTP7Server::setAddress(BufferType b,
@@ -152,11 +151,11 @@ bool CTP7Server::setAddress(BufferType b,
             address = addressOffset;
         }
         else
-            return false;
+	  return false;
     }
     else if(b == inputBuffer) {
-        if(linkNumber < NILinks && !(addressOffset % sizeof(int)) &&
-           addressOffset < NIntsPerLink * sizeof(int)) {
+      if(linkNumber < NILinks && !(addressOffset % sizeof(int)) &&
+	 addressOffset < NIntsPerLink * sizeof(int)) {
             address = ILinkBaseAddress + addressOffset;
         }
         else
