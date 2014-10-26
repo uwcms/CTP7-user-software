@@ -21,8 +21,7 @@ savedNumberOfValues(0) {
         perror("Memory service connect failed");
         exit(1);
     }
-    
-    cout << "CTP7Server:: Connected to the AXI memory handler" << endl;
+
 }
 
 CTP7Server::~CTP7Server() {
@@ -31,28 +30,28 @@ CTP7Server::~CTP7Server() {
     }
 }
 
-//FIX ME PROBLEM WITH MEMORY SERVICE!!!! Isobel June 24 2014
-/*
- bool CTP7Server::getData(unsigned int address,
- unsigned int numberOfValues,
- unsigned int *buffer) {
+//FIX ME PROBLEM WITH MEMORY SERVICE!
+
+bool CTP7Server::getData(unsigned int address,
+						 unsigned int numberOfValues,
+						 unsigned int *buffer) {
  int wordsToGo = numberOfValues;
  int wordsDone = 0;
  
  while(wordsToGo > 0) {
- int words = min(wordsToGo, MEMSVC_MAX_WORDS);
- if(memsvc_read(memHandle, address, words, &buffer[wordsDone]) != 0) {
- //FIXME
- //printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
- return false;
- }
- wordsToGo -= words;
- wordsDone += words;
+	 int words = min(wordsToGo, MEMSVC_MAX_WORDS);
+	 if(memsvc_read(memHandle, address, words, &buffer[wordsDone]) != 0) {
+		 //FIXME
+		 printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
+		 return false;
+	 }
+	 wordsToGo -= words;
+	 wordsDone += words;
  }
  return true;
- }
- */
+}
 
+/*
 bool CTP7Server::getData(unsigned int address,
                          unsigned int numberOfValues,
                          unsigned int *buffer) {
@@ -76,7 +75,7 @@ bool CTP7Server::getData(unsigned int address,
     }
     return true;
 }
-
+*/
 bool CTP7Server::putData(unsigned int address,
                          unsigned int numberOfValues,
                          unsigned int *buffer) {
@@ -587,7 +586,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
             if(argc != 3)
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
             else{
-                value = getAddress((BufferType) argv[0], 0, LinkIDBase + 4 * argv[2] );
+                value = getAddress((BufferType) argv[0], 0, LinkIDBase + 4 * argv[2]);
                 sprintf(oMessage, "%X", value);
                 //sprintf((char*)oData, "%X", value);
                 //dataArray[0]=value;
