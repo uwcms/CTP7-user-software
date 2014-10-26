@@ -106,15 +106,6 @@ bool CTP7Server::putData(unsigned int address,
     return true;
 }
 
-/*
- * Get Address if BufferType is registerBuffer then this returns the
- * value of addressOffset
- * 
- * If there is an error in link number or addressoffset is not divisible
- * by sizeof(int) return a value that is invalid (i.e. 0xFFFF_FFFF_F)
- * If failed to get address then return a different invalid value (0xFFFF_FFFF_1)
- */
-
 unsigned int CTP7Server::getAddress(BufferType b,
                                     unsigned int linkNumber,
                                     unsigned int addressOffset)
@@ -128,7 +119,7 @@ unsigned int CTP7Server::getAddress(BufferType b,
 	address = ILinkBaseAddress + addressOffset;
         }
       else
-	return 0xFFFFFFFFF;
+	return 0xDEADBEEF;
     }
     else if(b == outputBuffer) {
         if(linkNumber < NOLinks &&
@@ -137,7 +128,7 @@ unsigned int CTP7Server::getAddress(BufferType b,
             address = OLinkBaseAddress + addressOffset;
         }
         else
-            return 0xFFFFFFFFF;
+            return 0xDEADBEEF;
     }
 
     unsigned int buffer;
@@ -145,7 +136,7 @@ unsigned int CTP7Server::getAddress(BufferType b,
     if(getData(address, 1, &buffer)) 
         return buffer;
 
-    return 0xFFFFFFFF1;
+    return 0xDEADBEEF;
 
 }
 
@@ -560,12 +551,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
             else{
                 value = getAddress((BufferType) argv[0], argv[1], argv[2]);
-				if(value==0xFFFFFFFFF)
-					strcpy(oMessage, "ERROR_NOTVALID_LINK_OR_NOT_VALID_OFFSET");
-				else if(value>0xFFFFFFFF)
-					strcpy(oMessage, "ERROR_GETTING_ADDRESS");
-				else
-					sprintf(oMessage, "%X", value);
+                sprintf(oMessage, "%X", value);
                 //sprintf((char*)oData, "%X", value);
                 //dataArray[0]=value;
             }
@@ -576,10 +562,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
             else{
                 value = getRegister(argv[0]);
-				if(value>0xFFFFFFFF)
-					strcpy(oMessage, "ERROR_GETTING_ADDRESS");
-				else
-					sprintf(oMessage, "%X", value);
+                sprintf(oMessage, "%X", value);
             }
             break;
             
@@ -595,7 +578,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
             break;
             
         case(SetRegister):
-            if(argc != 2)
+            if(argc != 2 )
                 strcpy(oMessage, "ERROR_WRONG_NARGS");
             else
                 if(setRegister(argv[0], argv[1]))
