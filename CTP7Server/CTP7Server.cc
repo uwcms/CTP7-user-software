@@ -531,7 +531,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
    */
   
   switch(functionType)
-  {
+    {
       
     case(CheckConnection):
       strcpy(oMessage, "HelloToYou!");
@@ -604,8 +604,8 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
             bufferLen = (argv[3] * 4);
           else
             strcpy(oMessage, "ERROR: dumpContiguousBuffer failed mysteriously");
-          else
-            strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
+	else
+	  strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
       if(bufferLen==0)
         bufferLen = strlen(oMessage);
       break;
@@ -678,12 +678,13 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       
     case(DumpStatusRegisters):
       //define which registers to dump
-      unsigned int nStatusInts = 12;
-      unsigned int array[nStatusInts];
+      //unsigned int nStatusInts;
+      //nStatusInts = 12;
+      unsigned int array[12];
       statusArray(array);
       
-      if(dumpRegisterArray(array,nStatusInts,(unsigned int *) oData))
-        bufferLen = nStatusInts * 4;
+      if(dumpRegisterArray(array,12,(unsigned int *) oData))
+        bufferLen = 12 * 4;
       else
         strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
       
@@ -698,10 +699,8 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       //Note: We should never get to default; included only for completeness
     default:
       strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
-      break;
-      
-  }
-  
+    }
+
   
   cout<<"oMessage "<< oMessage<< endl;
   oData = (void *) oMessage;
