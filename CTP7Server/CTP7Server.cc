@@ -854,9 +854,10 @@ bool CTP7Server::dumpRegisterArray(unsigned int * arrayOfRegisters, unsigned int
 {
   //if(!statusArray(StatusArray))
   //std::cout<<"Error filling status array"<<std::endl;
-  for(unsigned int i = 0; i < sizeof(arrayOfRegisters); i++)
+  for(unsigned int i = 0; i < sizeof(arrayOfRegisters); i++){
     buffer[i] = getRegister(arrayOfRegisters[i]);
-
+    std::cout<<"arrayOfRegisters["<<i<<"] "<< arrayOfRegisters[i]<<" buffer "<<buffer[i] <<std::endl;
+  }
   return true;
 }
 
