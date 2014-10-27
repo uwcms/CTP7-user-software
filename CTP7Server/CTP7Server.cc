@@ -12,7 +12,6 @@ using namespace std;
 #include "CTP7.hh"
 #include "CTP7Server.hh"
 
-
 CTP7Server::CTP7Server() : verbose(false),
 savedBufferType(0),
 savedLinkNumber(0),
@@ -677,14 +676,16 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       break;
       
     case(DumpStatusRegisters):
-      //define which registers to dump
-      //unsigned int nStatusInts;
-      //nStatusInts = 12;
-      unsigned int array[12];
-      statusArray(array);
-      
-      if(dumpRegisterArray(array,12,(unsigned int *) oData))
-        bufferLen = 12 * 4;
+      //nStatusInts declared in header
+      nStatusInts = 12;
+      vec.reserve(nStatusInts);
+      fillStatusVector(vec);
+      //std::cout<<"returnStatusVector"<<std::endl;
+      //for(unsigned int i = 0; i<vec.size() ; i++)
+      //std::cout<<"vec.at("<<i<<") " <<vec.at(i)<<std::endl;
+
+      if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
+        bufferLen = vec.size() * 4;
       else
         strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
       
@@ -835,23 +836,27 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
 // note: in normal c++ compiler it is possible to initialize
 // an array with array[2]={1,2}
 
-unsigned int CTP7Server::statusArray(unsigned int array[12])
+bool CTP7Server::fillStatusVector(std::vector<unsigned int> & vector)
 {
-  unsigned int i = 0;
-  array[i]   = DECODER_LOCKED_CXP0;
-  array[i++] = DECODER_LOCKED_CXP1;
-  array[i++] = DECODER_LOCKED_CXP2;
-  array[i++] = CAPTURE_DONE_CXP0;
-  array[i++] = CAPTURE_DONE_CXP1;
-  array[i++] = CAPTURE_DONE_CXP2;
-  array[i++] = TX_PRBS_SEL;
-  array[i++] = RX_PRBS_SEL;
-  array[i++] = GT_LOOPBACK;
-  array[i++] = FW_DATE_CODE;
-  array[i++] = FW_GIT_HASH;
-  array[i++] = FW_GIT_HASH_DIRTY;
-  
-  return sizeof(array);
+
+  vector.push_back( DECODER_LOCKED_CXP0 );
+  vector.push_back( DECODER_LOCKED_CXP1 );
+  vector.push_back( DECODER_LOCKED_CXP2 );
+  vector.push_back( CAPTURE_DONE_CXP0   );
+  vector.push_back( CAPTURE_DONE_CXP1   );
+  vector.push_back( CAPTURE_DONE_CXP2   );
+  vector.push_back( TX_PRBS_SEL         );
+  vector.push_back( RX_PRBS_SEL         );
+  vector.push_back( GT_LOOPBACK         );
+  vector.push_back( FW_DATE_CODE        );
+  vector.push_back( FW_GIT_HASH         );
+  vector.push_back( FW_GIT_HASH_DIRTY   );
+
+  //std::cout<<"fillStatusVector"<<std::endl;
+  //for(unsigned int i = 0; i<vector.size() ; i++)
+  //std::cout<<"vector.at("<<i<<") " <<vector.at(i)<<std::endl;
+
+  return true;
 }
 
 /*
@@ -859,13 +864,13 @@ unsigned int CTP7Server::statusArray(unsigned int array[12])
  * Output: array of their statuses
  */
 
-bool CTP7Server::dumpRegisterArray(unsigned int * arrayOfRegisters,unsigned int nStatusInts, unsigned int *buffer)
+bool CTP7Server::dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters,unsigned int nInts, unsigned int *buffer)
 {
-  //if(!statusArray(StatusArray))
-  //std::cout<<"Error filling status array"<<std::endl;
-  for(unsigned int i = 0; i < nStatusInts; i++){
-    buffer[i] = getRegister(arrayOfRegisters[i]);
-    std::cout<<dec<<"arrayOfRegisters["<<i<<"] "<<hex<< arrayOfRegisters[i] <<" buffer "<< buffer[i] <<std::endl;
+
+  buffer[0]=0xc0000000;
+  for(unsigned int i = 1; i < nStatusInts; i++){
+    buffer[i] = getRegister(vectorOfRegisters.at(i-1));
+    //std::cout<<dec<<"vectorOfRegisters["<<i<<"] "<<hex<< vectorOfRegisters.at(i) <<" buffer "<< buffer[i] <<std::endl;
   }
   return true;
 }

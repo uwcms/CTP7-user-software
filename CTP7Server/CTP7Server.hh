@@ -133,7 +133,7 @@ public:
                                    unsigned int oMaxLength,
                                    unsigned int *dataArray=0);
     
-    unsigned int statusArray(unsigned int array[12]);    
+  bool fillStatusVector(std::vector<unsigned int>& vector);    
   
 protected:
     
@@ -169,7 +169,7 @@ private:
         ERROR
     };
     
-    bool dumpRegisterArray(unsigned int * arrayOfRegisters, unsigned int nStatusInts, unsigned int *buffer);
+    bool dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters, unsigned int nInts, unsigned int *buffer);
     
     bool getFunctionType(char function[10], 
                          functionType &functionType);
@@ -201,7 +201,9 @@ private:
     unsigned int savedBufferType;
     unsigned int savedLinkNumber;
     unsigned int savedNumberOfValues;
-    
+    unsigned int nStatusInts;
+  std::vector<unsigned int> vec;
+
     std::vector<unsigned int> patternData;
     
 };

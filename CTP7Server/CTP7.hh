@@ -33,8 +33,6 @@ public:
 
   // Externally accessible functions to get/set on-board buffers
 
-  virtual unsigned int statusArray(unsigned int array[12]) = 0;
-
   virtual unsigned int getAddress(BufferType bufferType,
 				  unsigned int linkNumber,
 				  unsigned int addressOffset) = 0;
