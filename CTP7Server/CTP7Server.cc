@@ -677,13 +677,9 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       
     case(DumpStatusRegisters):
       //nStatusInts declared in header
-      nStatusInts = 12;
-      vec.reserve(nStatusInts);
+      //nStatusInts = 12;
+      //vec.reserve(nStatusInts);
       fillStatusVector(vec);
-      //std::cout<<"returnStatusVector"<<std::endl;
-      //for(unsigned int i = 0; i<vec.size() ; i++)
-      //std::cout<<"vec.at("<<i<<") " <<vec.at(i)<<std::endl;
-
       if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
         bufferLen = vec.size() * 4;
       else
@@ -691,6 +687,37 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       
       if(bufferLen==0)
         bufferLen = strlen(oMessage);
+      break;
+        
+      case(DumpTSStatusRegisters):
+         //nTSStatusInts = 12;
+         //vec.reserve(nStatusInts);
+         fillTSStatusVector(vec);
+         
+        if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
+          bufferLen = vec.size() * 4;
+        else{
+          strcpy(oMessage, "FAILED_TO_DUMP_TS_STATUS_REGISTERS");
+          bufferLen = strlen(oMessage);}
+         break;
+        
+        
+    case(DumpCRCErrors):
+        BufferType registerBuffer type;
+        if(dumpContiguousBuffer(type, 0, CRC_ERR_CNT_BASE, 36, (unsigned int *) oData)))
+          bufferLen = (36 * 4);
+        else{
+          strcpy(oMessage, "FAILED_TO_DUMP_CRC_ERRORS" );
+          bufferLen = strlen(oMessage);}
+        break;
+
+    case(DumpDecoderErrors):
+      BufferType registerBuffer type;
+      if(dumpContiguousBuffer(type, 0, DECODER_UNLOCKED_CNT_BASE, 36, (unsigned int *) oData)))
+          bufferLen = (36 * 4);
+      else{
+          strcpy(oMessage, "FAILED_TO_DUMP_DECODER_ERRORS" );
+        bufferLen = strlen(oMessage);}
       break;
       
     case(ERROR):
@@ -702,13 +729,14 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
     }
 
-  
+  //special return statement only for dumping large buffers, a finite use
+  if(functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters
+    ||functionType==DumpCRCErrors||functionType==DumpDecoderErrors)
+    return bufferLen;
+
   cout<<"oMessage "<< oMessage<< endl;
   oData = (void *) oMessage;
   
-  //special return statement only for dumping large buffer
-  if(functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters)
-    return bufferLen;
 		
   return strlen(oMessage);
 }
@@ -798,7 +826,7 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = GetAddress;
   else if(strncmp(function, "getLinkID", 8) == 0)
     functionType = GetLinkID;
-  else if(strncmp(function,"capture",5) == 0)
+  else if(strncmp(function, "capture",5) == 0)
     functionType = Capture;
   else if(strncmp(function, "getRegister", 10) == 0)
     functionType = GetRegister;
@@ -824,6 +852,12 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = SoftReset;
   else if(strncmp(function, "dumpStatus", 10) == 0)
     functionType = DumpStatusRegisters;
+  else if(strncmp(function, "dumpTSStatus", 10) == 0)
+    functionType = DumpTSStatusRegisters;
+  else if(strncmp(function, "dumpCRCErrors", 13) == 0)
+    FunctionType = DumpCRCErrors;
+  else if(strncmp(function, "dumpDecoderErrors", 10) == 0)
+    FunctionType = DumpCRCErrors;
   else if(strncmp(function, "Hello", 5) == 0)
     functionType = CheckConnection;
   if(functionType==ERROR)
@@ -838,16 +872,24 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
 
 bool CTP7Server::fillStatusVector(std::vector<unsigned int> & vector)
 {
-
+  vector.push_back( QPLL_RESET          );
+  vector.push_back( QPLL_LOCK           );
   vector.push_back( DECODER_LOCKED_CXP0 );
   vector.push_back( DECODER_LOCKED_CXP1 );
   vector.push_back( DECODER_LOCKED_CXP2 );
   vector.push_back( CAPTURE_DONE_CXP0   );
   vector.push_back( CAPTURE_DONE_CXP1   );
   vector.push_back( CAPTURE_DONE_CXP2   );
+  vector.push_back( GT_RX_RESET_EN_CXP0 );
+  vector.push_back( GT_RX_RESET_EN_CXP1 );
+  vector.push_back( GT_RX_RESET_EN_CXP2 );
   vector.push_back( TX_PRBS_SEL         );
   vector.push_back( RX_PRBS_SEL         );
   vector.push_back( GT_LOOPBACK         );
+  vector.push_back( MMCM_RST_EN         );
+  vector.push_back( MMCM_LOCKED         );
+  vector.push_back( BC0_ERR             );
+  vector.push_back( BC0_LOCKED          );
   vector.push_back( FW_DATE_CODE        );
   vector.push_back( FW_GIT_HASH         );
   vector.push_back( FW_GIT_HASH_DIRTY   );
@@ -859,6 +901,35 @@ bool CTP7Server::fillStatusVector(std::vector<unsigned int> & vector)
   return true;
 }
 
+bool CTP7Server::fillTSStatusVector(std::vector<unsigned int> & vector)
+{
+  vector.push_back( QPLL_RESET          );
+  vector.push_back( QPLL_LOCK           );
+  vector.push_back( CAPTURE_DONE_CXP0   );
+  vector.push_back( CAPTURE_DONE_CXP1   );
+  vector.push_back( CAPTURE_DONE_CXP2   );
+  vector.push_back( GT_RX_RESET_EN_CXP0 );
+  vector.push_back( GT_RX_RESET_EN_CXP1 );
+  vector.push_back( GT_RX_RESET_EN_CXP2 );
+  vector.push_back( TX_PRBS_SEL         );
+  vector.push_back( RX_PRBS_SEL         );
+  vector.push_back( GT_LOOPBACK         );
+  vector.push_back( MMCM_RST_EN         );
+  vector.push_back( MMCM_LOCKED         );
+  vector.push_back( BC0_ERR             );
+  vector.push_back( BC0_LOCKED          );
+  vector.push_back( FW_DATE_CODE        );
+  vector.push_back( FW_GIT_HASH         );
+  vector.push_back( FW_GIT_HASH_DIRTY   );
+  
+  //std::cout<<"fillStatusVector"<<std::endl;
+  //for(unsigned int i = 0; i<vector.size() ; i++)
+  //std::cout<<"vector.at("<<i<<") " <<vector.at(i)<<std::endl;
+  
+  return true;
+}
+
+
 /*
  * Input: array of status registers
  * Output: array of their statuses
@@ -867,7 +938,7 @@ bool CTP7Server::fillStatusVector(std::vector<unsigned int> & vector)
 bool CTP7Server::dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters,unsigned int nInts, unsigned int *buffer)
 {
 
-  buffer[0]=0xc0000000;
+  buffer[0]=0xc0000001;
   for(unsigned int i = 1; i < nStatusInts; i++){
     buffer[i] = getRegister(vectorOfRegisters.at(i-1));
     //std::cout<<dec<<"vectorOfRegisters["<<i<<"] "<<hex<< vectorOfRegisters.at(i) <<" buffer "<< buffer[i] <<std::endl;

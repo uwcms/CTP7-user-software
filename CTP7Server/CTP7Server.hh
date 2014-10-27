@@ -166,6 +166,9 @@ private:
         Capture,
         CheckConnection,
         DumpStatusRegisters,
+        DumpTSStatusRegisters,
+        DumpCRCErrors,
+        DumpDecoderErrors,
         ERROR
     };
     
