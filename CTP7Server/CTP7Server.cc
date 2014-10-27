@@ -682,42 +682,41 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       fillStatusVector(vec);
       if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
         bufferLen = vec.size() * 4;
-      else
+      else{
         strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
-      
-      if(bufferLen==0)
-        bufferLen = strlen(oMessage);
+        bufferLen = strlen(oMessage);}
       break;
-        
-      case(DumpTSStatusRegisters):
+            
+    case(DumpTSStatusRegisters):
          //nTSStatusInts = 12;
          //vec.reserve(nStatusInts);
-         fillTSStatusVector(vec);
-         
-        if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
-          bufferLen = vec.size() * 4;
-        else{
-          strcpy(oMessage, "FAILED_TO_DUMP_TS_STATUS_REGISTERS");
-          bufferLen = strlen(oMessage);}
-         break;
-        
-        
-    case(DumpCRCErrors):
-        BufferType registerBuffer type;
-        if(dumpContiguousBuffer(type, 0, CRC_ERR_CNT_BASE, 36, (unsigned int *) oData)))
-          bufferLen = (36 * 4);
-        else{
-          strcpy(oMessage, "FAILED_TO_DUMP_CRC_ERRORS" );
-          bufferLen = strlen(oMessage);}
-        break;
-
-    case(DumpDecoderErrors):
-      BufferType registerBuffer type;
-      if(dumpContiguousBuffer(type, 0, DECODER_UNLOCKED_CNT_BASE, 36, (unsigned int *) oData)))
-          bufferLen = (36 * 4);
+      fillTSStatusVector(vec);
+      
+      if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
+	bufferLen = vec.size() * 4;
       else{
-          strcpy(oMessage, "FAILED_TO_DUMP_DECODER_ERRORS" );
-        bufferLen = strlen(oMessage);}
+	strcpy(oMessage, "FAILED_TO_DUMP_TS_STATUS_REGISTERS");
+	bufferLen = strlen(oMessage);}
+      break;
+      
+    case(DumpCRCErrors):
+      BufferType crcType; 
+      crcType = registerBuffer;
+      if(dumpContiguousBuffer(crcType, 0, CRC_ERR_CNT_BASE, 36, (unsigned int *) oData))
+	bufferLen = (36 * 4);
+      else{
+	strcpy(oMessage, "FAILED_TO_DUMP_CRC_ERRORS" );
+	bufferLen = strlen(oMessage);}
+      break;
+      
+    case(DumpDecoderErrors):
+      BufferType decoderType; 
+      decoderType = registerBuffer;
+      if(dumpContiguousBuffer(decoderType, 0, DECODER_UNLOCKED_CNT_BASE, 36, (unsigned int *) oData))
+	bufferLen = (36 * 4);
+      else{
+	strcpy(oMessage, "FAILED_TO_DUMP_DECODER_ERRORS" );
+	bufferLen = strlen(oMessage);}
       break;
       
     case(ERROR):
@@ -855,9 +854,9 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
   else if(strncmp(function, "dumpTSStatus", 10) == 0)
     functionType = DumpTSStatusRegisters;
   else if(strncmp(function, "dumpCRCErrors", 13) == 0)
-    FunctionType = DumpCRCErrors;
+    functionType = DumpCRCErrors;
   else if(strncmp(function, "dumpDecoderErrors", 10) == 0)
-    FunctionType = DumpCRCErrors;
+    functionType = DumpDecoderErrors;
   else if(strncmp(function, "Hello", 5) == 0)
     functionType = CheckConnection;
   if(functionType==ERROR)

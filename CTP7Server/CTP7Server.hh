@@ -134,6 +134,7 @@ public:
                                    unsigned int *dataArray=0);
     
   bool fillStatusVector(std::vector<unsigned int>& vector);    
+  bool fillTSStatusVector(std::vector<unsigned int>& vector);    
   
 protected:
     
