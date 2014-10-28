@@ -740,6 +740,10 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   return strlen(oMessage);
 }
 
+/*
+ * Initiate Capture
+ */
+
 bool CTP7Server::capture(){
   if(!poke( CAPTURE    , 0x0 ))
     return false;
@@ -849,6 +853,8 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = SetPattern;
   else if(strncmp(function, "softReset", 10) == 0)
     functionType = SoftReset;
+  else if(strncmp(function, "counterReset", 10) == 0)
+    functionType = CounterReset;
   else if(strncmp(function, "dumpStatus", 10) == 0)
     functionType = DumpStatusRegisters;
   else if(strncmp(function, "dumpTSStatus", 10) == 0)
