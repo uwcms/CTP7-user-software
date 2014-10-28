@@ -29,13 +29,12 @@ CTP7Server::~CTP7Server() {
   }
 }
 
-//FIX ME PROBLEM WITH MEMORY SERVICE!
 bool CTP7Server::getData(unsigned int address,
                          unsigned int numberOfValues,
                          unsigned int *buffer) {
   int wordsToGo = numberOfValues;
   int wordsDone = 0;
-  
+
   while(wordsToGo > 0) {
     int words = min(wordsToGo, MEMSVC_MAX_WORDS);
     if(memsvc_read(memHandle, address, words, &buffer[wordsDone]) != 0) {
@@ -46,34 +45,10 @@ bool CTP7Server::getData(unsigned int address,
     wordsToGo -= words;
     wordsDone += words;
   }
+
   return true;
 }
 
-/*
- bool CTP7Server::getData(unsigned int address,
- unsigned int numberOfValues,
- unsigned int *buffer) {
- int wordsToGo = numberOfValues;
- int wordsDone = 0;
- unsigned int readBuffer;
- 
- while(wordsToGo > 0) {
- //Set n words to read == 1 to cope with memsvc
- int words = 1;
- if(memsvc_read(memHandle, address+wordsDone*4, words, &readBuffer) != 0) {
- #ifdef EMBED
- printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
- #endif
- return false;
- }
- 
- buffer[wordsDone]=readBuffer;
- wordsToGo -= words;
- wordsDone += words;
- }
- return true;
- }
- */
 bool CTP7Server::putData(unsigned int address,
                          unsigned int numberOfValues,
                          unsigned int *buffer) {
@@ -177,7 +152,7 @@ bool CTP7Server::dumpContiguousBuffer(BufferType b,
                                       unsigned int *buffer)
 {
   if(buffer == 0) buffer = localBuffer;
-  
+ 
   unsigned int address;
   unsigned int maxAddress;
   
@@ -199,13 +174,14 @@ bool CTP7Server::dumpContiguousBuffer(BufferType b,
   }
   
   unsigned int endAddress = address + numberOfValues * 4;
-  
+
   if(endAddress > maxAddress) return false;
-  
+
   if( getData (address, numberOfValues, buffer) ) {
-    // printBuffer(address, numberOfValues, buffer);
+    //printBuffer(address, numberOfValues, buffer);
     return true;
   }
+
   return false;
 }
 
@@ -677,23 +653,25 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       
     case(DumpStatusRegisters):
       //nStatusInts declared in header
-      //nStatusInts = 12;
-      //vec.reserve(nStatusInts);
+      nStatusInts = statusRegisterSize;
+      vec.reserve(nStatusInts);
       fillStatusVector(vec);
       if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
-        bufferLen = vec.size() * 4;
+	//add 1 for the versionNumber
+        bufferLen = ( vec.size() + 1 ) * 4;
       else{
         strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
         bufferLen = strlen(oMessage);}
       break;
             
     case(DumpTSStatusRegisters):
-         //nTSStatusInts = 12;
-         //vec.reserve(nStatusInts);
+      nStatusInts = statusRegisterSize;
+      vec.reserve(nStatusInts);
       fillTSStatusVector(vec);
       
       if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
-	bufferLen = vec.size() * 4;
+	//add 1 for the versionNumber
+        bufferLen = ( vec.size() + 1 ) * 4;
       else{
 	strcpy(oMessage, "FAILED_TO_DUMP_TS_STATUS_REGISTERS");
 	bufferLen = strlen(oMessage);}
@@ -701,21 +679,23 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       
     case(DumpCRCErrors):
       BufferType crcType; 
-      crcType = registerBuffer;
+      crcType = unnamed;
       if(dumpContiguousBuffer(crcType, 0, CRC_ERR_CNT_BASE, 36, (unsigned int *) oData))
 	bufferLen = (36 * 4);
       else{
 	strcpy(oMessage, "FAILED_TO_DUMP_CRC_ERRORS" );
+	std::cout<<"FAILED_TO_DUMP_CRC_ERRORS"<<std::endl;
 	bufferLen = strlen(oMessage);}
       break;
       
     case(DumpDecoderErrors):
       BufferType decoderType; 
-      decoderType = registerBuffer;
+      decoderType = unnamed;
       if(dumpContiguousBuffer(decoderType, 0, DECODER_UNLOCKED_CNT_BASE, 36, (unsigned int *) oData))
 	bufferLen = (36 * 4);
       else{
 	strcpy(oMessage, "FAILED_TO_DUMP_DECODER_ERRORS" );
+	std::cout<<"FAILED_TO_DUMP_DECODER_ERRORS"<<std::endl;
 	bufferLen = strlen(oMessage);}
       break;
       
@@ -859,13 +839,13 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = DumpStatusRegisters;
   else if(strncmp(function, "dumpTSStatus", 10) == 0)
     functionType = DumpTSStatusRegisters;
-  else if(strncmp(function, "dumpCRCErrors", 13) == 0)
+  else if(strncmp(function, "dumpCRCErrors", 10) == 0)
     functionType = DumpCRCErrors;
   else if(strncmp(function, "dumpDecoderErrors", 10) == 0)
     functionType = DumpDecoderErrors;
   else if(strncmp(function, "Hello", 5) == 0)
     functionType = CheckConnection;
-  if(functionType==ERROR)
+  if(functionType == ERROR)
     std::cout<<"function type is not valid!!!"<<std::endl;
   
   return true;
@@ -944,9 +924,9 @@ bool CTP7Server::dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters,
 {
 
   buffer[0]=0xc0000001;
-  for(unsigned int i = 1; i < nStatusInts; i++){
-    buffer[i] = getRegister(vectorOfRegisters.at(i-1));
-    //std::cout<<dec<<"vectorOfRegisters["<<i<<"] "<<hex<< vectorOfRegisters.at(i) <<" buffer "<< buffer[i] <<std::endl;
+  for(unsigned int i = 0; i < nInts ; i++){
+    buffer[i+1] = getRegister(vectorOfRegisters.at(i));
+    //std::cout<<dec<<vectorOfRegisters.at(i) <<" vectorOfRegisters["<<i<<"] "<<hex<< vectorOfRegisters.at(i) <<" buffer "<< buffer[i+1] <<std::endl;
   }
   return true;
 }

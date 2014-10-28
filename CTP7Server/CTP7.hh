@@ -8,11 +8,15 @@
 
 #define NIntsPerLink 1024
 #define LinkBufSize NIntsPerLink * sizeof(int)
-#define NRegisters 32
+
+//NRegisters = Final Register Address - Initial Register Address
+#define NRegisters 0x1FFFF
+
 #define MaxValidAddress 0x65000000
 #define RegBufSize NRegisters *sizeof(int)
 #define NILinks 36
 #define NOLinks 3
+#define statusRegisterSize 21
 //#define NILinks 67
 //#define NOLinks 48
 
