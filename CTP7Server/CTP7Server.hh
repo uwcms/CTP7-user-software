@@ -170,6 +170,7 @@ private:
         DumpTSStatusRegisters,
         DumpCRCErrors,
         DumpDecoderErrors,
+        DumpAllLinkIDs,
         ERROR
     };
     
