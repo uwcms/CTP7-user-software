@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <ostream>
 #include <iostream>
+#include <ctime>
 
 #define MAX_BUFFER_SIZE 8192
 
@@ -115,6 +116,7 @@ int main(int argc, char **argv)
       unsigned int dataArray[MAX_BUFFER_SIZE]={0};
 
       if(bytes_received > 0) {
+
 
 	std::cout << "bytes received :" << bytes_received << std::endl ;
 

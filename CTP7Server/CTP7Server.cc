@@ -375,8 +375,8 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
     case(DumpAllLinkIDs):
       BufferType linkIDType;
       linkIDType = unnamed;
-      if(dumpContiguousBuffer(linkIDType, 0, LinkIDBase, 36, (unsigned int *) oData))
-        bufferLen = (36 * 4);
+      if(dumpContiguousBuffer( linkIDType, 0, LinkIDBase, NILinks , (unsigned int *) oData))
+        bufferLen = ((NILinks+1)  * 4);
       else{
         strcpy(oMessage, "FAILED_TO_DUMP_LINK_IDS" );
         bufferLen = strlen(oMessage);}
@@ -386,8 +386,8 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
     case(DumpCRCErrors):
       BufferType crcType;
       crcType = unnamed;
-      if(dumpContiguousBuffer(crcType, 0, CRC_ERR_CNT_BASE, 36, (unsigned int *) oData))
-        bufferLen = (36 * 4);
+      if(dumpContiguousBuffer(crcType, 0, CRC_ERR_CNT_BASE, NILinks, (unsigned int *) oData))
+        bufferLen = ((NILinks+1) * 4);
       else{
         strcpy(oMessage, "FAILED_TO_DUMP_CRC_ERRORS" );
         bufferLen = strlen(oMessage);}
@@ -414,7 +414,7 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   
   //special return statement only for dumping large buffers, a finite use
   if(functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters
-     ||functionType==DumpCRCErrors||functionType==DumpDecoderErrors)
+     ||functionType==DumpCRCErrors||functionType==DumpDecoderErrors||functionType==DumpAllLinkIDs)
     return bufferLen;
   
   cout<<"oMessage "<< oMessage<< endl;
@@ -535,7 +535,7 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = DumpTSStatusRegisters;
   else if(strncmp(function, "dumpCRCErrors", 10) == 0)
     functionType = DumpCRCErrors;
-  else if(strncmp(function, "dumpAllLinkIDs", 13) == 0)
+  else if(strncmp(function, "dumpAllLinkIDs", 10) == 0)
     functionType = DumpAllLinkIDs;
   else if(strncmp(function, "dumpDecoderErrors", 10) == 0)
     functionType = DumpDecoderErrors;
@@ -731,7 +731,7 @@ bool CTP7Server::dumpContiguousBuffer(BufferType b,
     //printBuffer(address, numberOfValues, buffer);
     return true;
   }
-  
+
   return false;
 }
 
