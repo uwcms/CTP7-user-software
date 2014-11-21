@@ -5,14 +5,95 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <ostream>
-#include <iostream>
-#include <ctime>
+#include <pthread.h>
 
 #define MAX_BUFFER_SIZE 8192
 
 #include "CTP7Server.hh"
 
+class Mutex {
+public:
+    Mutex() {pthread_mutex_init(&_mutex, 0);}
+    ~Mutex() {pthread_mutex_destroy(&_mutex);}
+
+    void lock() {pthread_mutex_lock (&_mutex);}
+    void unlock() {pthread_mutex_unlock (&_mutex);}
+
+private:
+    pthread_mutex_t _mutex;
+};
+
+Mutex myMutex;
+CTP7Server ctp7;
+
+void server(int *sdPtr) {
+
+  int sd = *sdPtr;
+
+  std::cout << "New server thread started for socket descriptor = " << sd << std::endl;
+
+  // This server serves one client per thread
+  // Note that the client must HANGUP to exit gracefully in a prompt fashion
+  // Otherwise, a timeout (when it occurs) will cause the server to close the thread
+
+  union {
+    char incoming_char_buffer[MAX_BUFFER_SIZE];
+    unsigned char incoming_data_buffer[MAX_BUFFER_SIZE];
+    unsigned int incoming_uint_buffer[MAX_BUFFER_SIZE / 4];
+  };
+
+  union {
+    char outgoing_char_buffer[MAX_BUFFER_SIZE];
+    unsigned char outgoing_data_buffer[MAX_BUFFER_SIZE];
+    unsigned int outgoing_uint_buffer[MAX_BUFFER_SIZE / 4];
+  };
+
+  while(true) {
+    std::cout << "Waiting to receive data..."  << std::endl;
+
+    ssize_t bytes_received = 
+      recv(sd, incoming_data_buffer,MAX_BUFFER_SIZE, 0);
+
+    // If no data arrives, the program will just wait here 
+    // until some data arrives.
+
+    if(bytes_received > 0) {
+
+      std::cout << "bytes received :" << bytes_received << std::endl ;
+
+      if(strncmp(incoming_char_buffer, "HANGUP", 6) != 0) {
+
+	myMutex.lock();
+	int len = ctp7.processTCPMessage(incoming_data_buffer, 
+					 outgoing_data_buffer, 
+					 bytes_received,
+					 MAX_BUFFER_SIZE);
+	myMutex.unlock();
+
+	std::cout << "Sending back a message of length ..." << len 
+		  << std::endl;
+
+	ssize_t bytes_sent = send(sd, outgoing_data_buffer, len, 0);
+	std::cout << "bytes sent :" << bytes_sent << std::endl ;
+
+      }
+      else {
+	close(sd);
+	break;
+      }
+    }
+    else if (bytes_received == 0) {
+      std::cout << "host shut down." << std::endl ;
+      close(sd);
+      break;
+    }
+    else if (bytes_received == -1) {
+      std::cout << "receive error!" << std::endl ;
+      close(sd);
+      break;
+    }
+  }
+}
 
 int main(int argc, char **argv)
 {
@@ -57,7 +138,6 @@ int main(int argc, char **argv)
     std::cerr << "Error setting socket opts" << std::endl;
   }
   
-
   std::cout << "Binding socket..."  << std::endl;
   // we use to make the setsockopt() function to make sure the port is 
   // not in use by a previous execution of our code. 
@@ -71,8 +151,9 @@ int main(int argc, char **argv)
   status =  listen(socketfd, 5);
   if (status == -1)  std::cout << "listen error" << std::endl ;
 
+  typedef void* (*PTHREAD_FUNC) (void *);
+  pthread_t thread;
 
-  CTP7Server ctp7;
   while(true) {
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
@@ -86,72 +167,13 @@ int main(int argc, char **argv)
 	std::cout << "Connection accepted. Using new socketfd : "  <<  new_sd 
 		  << std::endl;
       }
-    // This server works with only one client at a time
-    // We will deal with multiple concurrent clients, mutex etc. later!
-    // Note that the client must HANGUP to exit gracefully in a prompt fashion
-    // Otherwise, a timeout (when it occurs) will cause the server 
-    // to go accept the next client
 
-      union {
-	char incoming_char_buffer[MAX_BUFFER_SIZE];
-	unsigned char incoming_data_buffer[MAX_BUFFER_SIZE];
-	unsigned int incoming_uint_buffer[MAX_BUFFER_SIZE / 4];
-      };
-
-      union {
-	char outgoing_char_buffer[MAX_BUFFER_SIZE];
-	unsigned char outgoing_data_buffer[MAX_BUFFER_SIZE];
-	unsigned int outgoing_uint_buffer[MAX_BUFFER_SIZE / 4];
-      };
-
-    while(true) {
-      std::cout << "Waiting to receive data..."  << std::endl;
-
-      ssize_t bytes_received = 
-	recv(new_sd, incoming_data_buffer,MAX_BUFFER_SIZE, 0);
-
-      // If no data arrives, the program will just wait here 
-      // until some data arrives.
-
-      unsigned int dataArray[MAX_BUFFER_SIZE]={0};
-
-      if(bytes_received > 0) {
-
-
-	std::cout << "bytes received :" << bytes_received << std::endl ;
-
-	if(strncmp(incoming_char_buffer, "HANGUP", 6) != 0) {
-
-
-	  int len = ctp7.processTCPMessage(incoming_data_buffer, 
-					   outgoing_data_buffer, 
-					   bytes_received,
-					   MAX_BUFFER_SIZE,
-					   dataArray);
-
-	  std::cout << "Sending back a message of length ..." << len 
-		    << std::endl;
-
-	  ssize_t bytes_sent = send(new_sd, outgoing_data_buffer, len, 0);
-	  std::cout << "bytes sent :" << bytes_sent << std::endl ;
-
-	}
-	else {
-	  close(new_sd);
-	  break;
-	}
-      }
-      else if (bytes_received == 0) {
-	std::cout << "host shut down." << std::endl ;
-	close(new_sd);
-	break;
-      }
-      else if (bytes_received == -1) {
-	std::cout << "receive error!" << std::endl ;
-	close(new_sd);
-	break;
-      }
+    int status = pthread_create(&thread, NULL, PTHREAD_FUNC(server), &new_sd);
+    if(status != 0) {
+      std::cerr << "pthread_create returns " << status << std::endl;
+      exit(EXIT_FAILURE);
     }
+
   }
 
   freeaddrinfo(host_info_list);

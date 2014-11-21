@@ -943,11 +943,23 @@ bool CTP7Server::setRandomPattern(BufferType b,
   }
   else return false;
   
-  char state[32] = "This is the state of the random";
-  char* initialState = initstate(randomSeed, state, 32);
-  if(initialState == 0) {
-    cerr << "Random number initialization failed?" << endl;
-    return false;
+  static bool first = true;
+  static char state[32] = "This is the state of the random";
+  if(first) {
+    unsigned int seed = 0xDEADBEEF;
+    if(randomSeed != 0) seed = randomSeed;
+    char* initialState = initstate(seed, state, 32);
+    if(initialState == 0) {
+      cerr << "Random number initialization failed?" << endl;
+      return false;
+    }
+    first = false;
+  }
+  else {
+    // If the random seed is non-zero, use definite random pattern
+    // Otherwise, use whatever the state is left at so that
+    // repeated calls yield random patterns
+    if(randomSeed != 0) srandom(randomSeed);
   }
   for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
     localBuffer[j++] = rand();
@@ -1007,6 +1019,8 @@ int memsvc_write(memsvc_handle_t handle, uint32_t addr, uint32_t words, const ui
   }
   return 0;
 }
-
+const char* memsvc_get_last_error(memsvc_handle_t handle) {
+  return "undefined";
+}
 
 #endif

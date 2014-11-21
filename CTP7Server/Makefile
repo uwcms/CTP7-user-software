@@ -1,6 +1,7 @@
 # Cross-compiling to a Petalinux target
-#TODO Fix make clean so that it will rebuild the libraries. Currently it seems not to be doing this.
-#ifdef PETA
+# TODO Fix make clean so that it will rebuild the libraries. Currently it seems not to be doing this.
+
+ifdef PETA
 
 PETADIST=$(PETALINUX)/software/petalinux-dist
 PETACTP7MEMSVC=../libmemsvc/
@@ -28,16 +29,16 @@ LDFLAGS= -L$(PETADIST)/lib -L$(PETADIST)/stage/lib \
 LIBDIR = ../../pl-lib
 BINDIR = ../../pl-bin
 SHLIB=
-#else
-#CFLAGS = -g -DLINUX -fPIC -I $(VMEDIR)/include -I $(RCTCOREDIR)/include
-#LIBDIR = ../lib
-#BINDIR = ../bin
 
-#SHLIB=
-LDFLAGS=-L $(LIBDIR) -L /opt/xdaq/lib -L$(PETACTP7MEMSVC) -lmemsvc
-#CXXFLAGS=-g -Wall -DLINUX -DLOG_LEVEL=0x0 -fPIC -I $(VMEDIR)/include -I $(RCTCOREDIR)/include  
+else
 
-#endif
+CFLAGS = -g 
+LIBDIR = ../../lib
+BINDIR = ../../bin
+SHLIB =
+LDFLAGS = -L $(LIBDIR) -lCTP7Server
+CXXFLAGS = $(CFLAGS)
+endif
 
 
 include ../../mkdep_makefile/config
