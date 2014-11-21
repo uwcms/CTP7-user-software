@@ -19,11 +19,12 @@ CFLAGS=-fomit-frame-pointer -pipe -fno-common -fno-builtin \
        -I$(PETADIST)/stage/usr/local/include \
        -I$(PETADIST) -I$(PETADIST)/include \
        -I$(PETACTP7MEMSVC) \
-       -I$(RCTCOREDIR)/include
+       -I$(RCTCOREDIR)/include 
 
 LDFLAGS= -L$(PETADIST)/lib -L$(PETADIST)/stage/lib \
          -L$(PETADIST)/stage/usr/lib -L$(PETADIST)/stage/usr/local/lib \
          -L$(PETACTP7MEMSVC) -lmemsvc \
+	 -lpthread \
          -static
 
 LIBDIR = ../../pl-lib
