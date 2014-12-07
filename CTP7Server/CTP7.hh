@@ -20,6 +20,8 @@
 //#define NILinks 67
 //#define NOLinks 48
 
+#define MAX_CONFIG_STRING_LEN 1024
+
 class CTP7 {
 
 public:
@@ -37,6 +39,8 @@ public:
 
   // Externally accessible functions to get/set on-board buffers
 
+  virtual const char *getConfiguration() = 0;
+
   virtual unsigned int getAddress(BufferType bufferType,
 				  unsigned int linkNumber,
 				  unsigned int addressOffset) = 0;
@@ -48,6 +52,8 @@ public:
 				    unsigned int startAddressOffset, 
 				    unsigned int numberOfValues, 
 				    unsigned int *buffer) = 0;
+
+  virtual bool setConfiguration(const char* input) = 0;
 
   virtual bool setAddress(BufferType bufferType, 
 			  unsigned int linkNumber,

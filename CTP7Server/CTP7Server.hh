@@ -55,8 +55,7 @@ public:
     
     CTP7Server();
     virtual ~CTP7Server();
-    
-   
+
     // Externally accessible functions to get/set on-board buffer
     bool printBuffer(unsigned int address, unsigned int numberOfValues, unsigned int * buffer);
     
@@ -69,6 +68,11 @@ public:
         return (OLinkBaseAddress + linkNumber * LinkBufSize + startAddressOffset);
     }
     
+
+    // Configuration
+    const char *getConfiguration() {return configuration;}
+    bool setConfiguration(const char *input);
+   
     unsigned int getAddress(BufferType bufferType,
                             unsigned int linkNumber,
                             unsigned int addressOffset);
@@ -200,6 +204,8 @@ private:
     memsvc_handle_t memHandle;
     
     bool verbose;
+
+    char configuration[MAX_CONFIG_STRING_LEN];
     
     unsigned int localBuffer[PAGE_INTS];
     

@@ -13,20 +13,29 @@ using namespace std;
 #include "CTP7Server.hh"
 
 CTP7Server::CTP7Server() : verbose(false),
-savedBufferType(0),
-savedLinkNumber(0),
-savedNumberOfValues(0) {
+			   savedBufferType(0),
+			   savedLinkNumber(0),
+			   savedNumberOfValues(0) {
+  strcpy(configuration, "Unconfigured");
   if(memsvc_open(&memHandle) != 0) {
     perror("Memory service connect failed");
     exit(1);
   }
-  
 }
 
 CTP7Server::~CTP7Server() {
   if(memsvc_close(&memHandle) != 0) {
     perror("Memory service close failed");
   }
+}
+
+bool CTP7Server::setConfiguration(const char *input) {
+  uint32_t length = strlen(input);
+  if(length > 0 && length < MAX_CONFIG_STRING_LEN) {
+    strcpy(configuration, input);
+    return true;
+  }
+  return false;
 }
 
 // Memory Access
