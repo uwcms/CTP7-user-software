@@ -13,10 +13,10 @@ using namespace std;
 #include "CTP7Server.hh"
 
 CTP7Server::CTP7Server() : verbose(false),
+			   configuration(0),
 			   savedBufferType(0),
 			   savedLinkNumber(0),
 			   savedNumberOfValues(0) {
-  strcpy(configuration, "Unconfigured");
   if(memsvc_open(&memHandle) != 0) {
     perror("Memory service connect failed");
     exit(1);
@@ -29,13 +29,9 @@ CTP7Server::~CTP7Server() {
   }
 }
 
-bool CTP7Server::setConfiguration(const char *input) {
-  uint32_t length = strlen(input);
-  if(length > 0 && length < MAX_CONFIG_STRING_LEN) {
-    strcpy(configuration, input);
-    return true;
-  }
-  return false;
+bool CTP7Server::setConfiguration(unsigned int input) {
+  configuration = input;
+  return true;
 }
 
 // Memory Access
@@ -254,6 +250,16 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       }
       break;
       
+    case(SetConfiguration):
+      if(argc != 1)
+	strcpy(oMessage, "ERROR_WRONG_NARGS");
+      else
+        if(setConfiguration(argv[0]))
+          strcpy(oMessage, "SUCCESS");
+	else
+	  strcpy(oMessage, "ERROR_CONFIGURING");
+      break;
+
     case(SetRegister):
       if(argc != 2 )
         strcpy(oMessage, "ERROR_WRONG_NARGS");
@@ -518,6 +524,8 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
     functionType = GetRegister;
   else if(strncmp(function, "setPattern", 10) == 0)
     functionType = SetPattern;
+  else if(strncmp(function, "setConfiguration", 10) == 0)
+    functionType = SetConfiguration;
   else if(strncmp(function, "setRegister", 10) == 0)
     functionType = SetRegister;
   else if(strncmp(function, "setAddress", 10) == 0)

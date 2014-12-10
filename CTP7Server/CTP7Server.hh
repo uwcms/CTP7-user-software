@@ -70,8 +70,8 @@ public:
     
 
     // Configuration
-    const char *getConfiguration() {return configuration;}
-    bool setConfiguration(const char *input);
+    unsigned int getConfiguration() {return configuration;}
+    bool setConfiguration(unsigned int input);
    
     unsigned int getAddress(BufferType bufferType,
                             unsigned int linkNumber,
@@ -159,6 +159,7 @@ private:
         GetAddress,
         GetRegister,
         DumpContiguousBuffer,
+	SetConfiguration,
         SetAddress,
         SetRegister,
         SetPattern,
@@ -205,7 +206,7 @@ private:
     
     bool verbose;
 
-    char configuration[MAX_CONFIG_STRING_LEN];
+    unsigned int configuration;
     
     unsigned int localBuffer[PAGE_INTS];
     
