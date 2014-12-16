@@ -37,6 +37,8 @@ public:
 
   // Externally accessible functions to get/set on-board buffers
 
+  virtual unsigned int getConfiguration() = 0;
+
   virtual unsigned int getAddress(BufferType bufferType,
 				  unsigned int linkNumber,
 				  unsigned int addressOffset) = 0;
@@ -48,6 +50,8 @@ public:
 				    unsigned int startAddressOffset, 
 				    unsigned int numberOfValues, 
 				    unsigned int *buffer) = 0;
+
+  virtual bool setConfiguration(unsigned int input) = 0;
 
   virtual bool setAddress(BufferType bufferType, 
 			  unsigned int linkNumber,
