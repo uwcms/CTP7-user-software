@@ -3,16 +3,13 @@
 
 #include <vector>
 
-// This class defines interface to CTP7
+// This class defines the interface to CTP7
 // The idea is to keep this pure virtual and enable client/server communication
 
 #define NIntsPerLink 1024
 #define LinkBufSize NIntsPerLink * sizeof(int)
-
-//NRegisters = Final Register Address - Initial Register Address
-#define NRegisters 0x1FFFF
-
-#define MaxValidAddress 0x65000000
+#define NRegisters 32
+#define MaxValidAddress 0x63000000
 #define RegBufSize NRegisters *sizeof(int)
 #define NILinks 36
 #define NOLinks 3
@@ -20,6 +17,7 @@
 //#define NILinks 67
 //#define NOLinks 48
 
+#define S2NILinks 48
 class CTP7 {
 
 public:
@@ -32,12 +30,11 @@ public:
     inputBuffer = 0,
     outputBuffer = 1,
     registerBuffer = 2,
-    unnamed = 3
+    unnamed = 3,
+    s2inputBuffer = 4
   };
 
   // Externally accessible functions to get/set on-board buffers
-
-  virtual unsigned int getConfiguration() = 0;
 
   virtual unsigned int getAddress(BufferType bufferType,
 				  unsigned int linkNumber,
@@ -50,9 +47,7 @@ public:
 				    unsigned int startAddressOffset, 
 				    unsigned int numberOfValues, 
 				    unsigned int *buffer) = 0;
-
-  virtual bool setConfiguration(unsigned int input) = 0;
-
+  
   virtual bool setAddress(BufferType bufferType, 
 			  unsigned int linkNumber,
 			  unsigned int addressOffset, 
@@ -78,6 +73,14 @@ public:
   virtual bool setRandomPattern(BufferType bufferType,
 				unsigned int linkNumber, 
 				unsigned int randomSeed) = 0;
+
+  virtual bool capture() = 0;
+  virtual bool softReset() = 0;
+  //virtual bool counterReset() = 0;
+  virtual bool checkConnection() = 0;
+  virtual bool hardReset() = 0;
+
+  //virtual bool decoderLocked() = 0;
 
 };
 

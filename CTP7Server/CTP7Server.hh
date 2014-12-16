@@ -137,6 +137,8 @@ public:
     bool capture();
     bool softReset();
     bool counterReset();
+  bool checkConnection(){return true;}; //these need to be added as methods, current implentation is incorrect
+  bool hardReset(){return true;};//these need to be added as methods
 
     unsigned int processTCPMessage(void *iMessage,
                                    void *oMessage,
