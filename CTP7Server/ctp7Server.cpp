@@ -59,6 +59,8 @@ void server(int *sdPtr) {
 
     if(bytes_received > 0) {
 
+      ctp7.logTimeStamp();
+
       std::cout << "bytes received :" << bytes_received << std::endl ;
 
       if(strncmp(incoming_char_buffer, "HANGUP", 6) != 0) {

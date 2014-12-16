@@ -37,11 +37,13 @@ bool CTP7Server::getData(unsigned int address,
   int wordsDone = 0;
   
   while(wordsToGo > 0) {
-    int words = min(wordsToGo, MEMSVC_MAX_WORDS);
+    //int words = min(wordsToGo, MEMSVC_MAX_WORDS);
+    int words = 1; 
     if(memsvc_read(memHandle, address, words, &buffer[wordsDone]) != 0) {
       printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
       return false;
     }
+    address = address + words*4;
     wordsToGo -= words;
     wordsDone += words;
   }
@@ -61,17 +63,15 @@ bool CTP7Server::putData(unsigned int address,
   while(wordsToGo > 0) {
     int words = 1;
     writeBuffer = buffer[wordsDone];
-    
+    //std::cout<<"wordsDone "<<wordsDone<< "  "<< writeBuffer<<std::endl;
     if(memsvc_write(memHandle, address, words, &writeBuffer) != 0) {
 #ifdef EMBED
       printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
 #endif
-      std::cout<<"Memory access failed "<<std::endl;
-      
       return false;
     }
     
-    address = address + 4;
+    address = address + words*4;
     wordsToGo -= words;
     wordsDone += words;
   }
@@ -610,15 +610,27 @@ bool CTP7Server::fillTSStatusVector(std::vector<unsigned int> & vector)
   return true;
 }
 
+/*
+ * Get Link ID
+ 
+
+bool CTP7Server::getLinkID(unsigned int ){
+  if(!poke(LINK_ID_TO_GET,value));
+  if(!poke(LINK_ID_TO_GET,value));
+    
+    
+}
+*/
 
 /*
  * Input: array of status registers
  * Output: array of their statuses
  */
 
-bool CTP7Server::dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters,unsigned int nInts, unsigned int *buffer)
+bool CTP7Server::dumpRegisterArray(std::vector<unsigned int> &vectorOfRegisters,
+				   unsigned int nInts, 
+				   unsigned int *buffer)
 {
-  
   buffer[0]=0xc0000001;
   for(unsigned int i = 0; i < nInts ; i++){
     buffer[i+1] = getRegister(vectorOfRegisters.at(i));
@@ -826,6 +838,9 @@ bool CTP7Server::setConstantPattern(BufferType b,
   else if(b == outputBuffer && linkNumber < NOLinks) {
     address = getOutputLinkAddress( linkNumber );
   }
+  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
+    address = getInputLinkAddressS2( linkNumber );
+  }
   else return false;
   
   for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
@@ -851,8 +866,12 @@ bool CTP7Server::setIncreasingPattern(BufferType b,
   else if(b == outputBuffer && linkNumber < NOLinks) {
     address = getOutputLinkAddress( linkNumber );
   }
+  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
+    address = getInputLinkAddressS2( linkNumber );
+  }
   else return false;
   unsigned int value = startValue;
+  std::cout<<"address "<<hex<<address<<std::endl;
   for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
     localBuffer[j++] = value;
     if(j == PAGE_INTS || i == (NIntsPerLink - 1)) {
@@ -878,6 +897,9 @@ bool CTP7Server::setDecreasingPattern(BufferType b,
   }
   else if(b == outputBuffer && linkNumber < NOLinks) {
     address = getOutputLinkAddress( linkNumber );
+  }
+  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
+    address = getInputLinkAddressS2( linkNumber );
   }
   else return false;
   unsigned int value = startValue;
@@ -906,6 +928,9 @@ bool CTP7Server::setPattern(BufferType b,
   }
   else if(b == outputBuffer && linkNumber < NOLinks) {
     address = getOutputLinkAddress( linkNumber );
+  }
+  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
+    address = getInputLinkAddressS2( linkNumber );
   }
   else return false;
   
@@ -941,6 +966,9 @@ bool CTP7Server::setRandomPattern(BufferType b,
   else if(b == outputBuffer && linkNumber < NOLinks) {
     address = getOutputLinkAddress( linkNumber );
   }
+  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
+    address = getInputLinkAddressS2( linkNumber );
+  }
   else return false;
   
   static bool first = true;
@@ -970,6 +998,24 @@ bool CTP7Server::setRandomPattern(BufferType b,
     }
   }
   return true;
+}
+
+void CTP7Server::logTimeStamp()
+{
+  string res = "";
+
+  time_t rawtime;
+  struct tm * timeinfo;
+  char buffer [80];
+
+  time (&rawtime);
+  timeinfo = localtime (&rawtime);
+
+  // Wednesday, March 19, 2014 01:06:18 PM
+  strftime (buffer,80,"%A, %B %d, %Y %r",timeinfo);
+
+  std::cout<<buffer<<std::endl;
+  return ;
 }
 
 #ifndef EMBED

@@ -10,7 +10,7 @@
 // revealed to the world.
 
 #include <vector>
-
+#include <stdint.h>
 #include "CTP7.hh"
 #include "CTP7Addresses.hh"
 
@@ -35,9 +35,9 @@ int memsvc_write(memsvc_handle_t handle, uint32_t addr, uint32_t words, const ui
 #define PAGE_SIZE (PAGE_INTS * 4)
 
 #ifdef EMBED
-#define ILinkBaseAddress 0x61000000
-#define OLinkBaseAddress 0x60000000
-#define RegBaseAddress   0x62000000
+#define ILinkBaseAddress   0x61000000
+#define OLinkBaseAddress   0x60000000
+#define RegBaseAddress     0x62000000
 #else
 #define ILinkBaseAddress 0
 #define OLinkBaseAddress ILinkBaseAddress+NILinks*LinkBufSize
@@ -48,6 +48,9 @@ int memsvc_write(memsvc_handle_t handle, uint32_t addr, uint32_t words, const ui
 #define maxILinkAddress ( ILinkBaseAddress + NILinks * LinkBufSize)
 #define maxOLinkAddress ( OLinkBaseAddress + NOLinks * LinkBufSize)
 
+//Stage 2 links
+#define S2ILinkBaseAddress 0x64000000
+#define S2MaxILinkAddress  ( ILinkBaseAddress + S2NILinks * LinkBufSize)
 
 class CTP7Server : public CTP7 {
     
@@ -63,6 +66,10 @@ public:
     //Add a Check Link step here
     unsigned int getInputLinkAddress(unsigned int linkNumber, unsigned int startAddressOffset = 0){
         return (ILinkBaseAddress + linkNumber * LinkBufSize + startAddressOffset);
+    }
+
+    unsigned int getInputLinkAddressS2(unsigned int linkNumber, unsigned int startAddressOffset = 0){
+        return (S2ILinkBaseAddress + linkNumber * LinkBufSize + startAddressOffset);
     }
     
     unsigned int getOutputLinkAddress(unsigned int linkNumber, unsigned int startAddressOffset = 0){
@@ -135,6 +142,7 @@ public:
     
   bool fillStatusVector(std::vector<unsigned int>& vector);    
   bool fillTSStatusVector(std::vector<unsigned int>& vector);    
+  void logTimeStamp();
   
 protected:
     
@@ -173,7 +181,7 @@ private:
         DumpAllLinkIDs,
         ERROR
     };
-    
+
     bool dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters, unsigned int nInts, unsigned int *buffer);
     
     bool getFunctionType(char function[10], 
