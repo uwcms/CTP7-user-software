@@ -35,6 +35,8 @@ bool CTP7Server::setConfiguration(unsigned int input) {
 }
 
 // Memory Access
+// TODO: Send more info sent to client when memsvc access fails
+
 bool CTP7Server::getData(unsigned int address,
                          unsigned int numberOfValues,
                          unsigned int *buffer) {
@@ -46,6 +48,7 @@ bool CTP7Server::getData(unsigned int address,
     int words = 1; 
     if(memsvc_read(memHandle, address, words, &buffer[wordsDone]) != 0) {
       printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
+      errorMemSVC = true;
       return false;
     }
     address = address + words*4;
@@ -73,6 +76,7 @@ bool CTP7Server::putData(unsigned int address,
 #ifdef EMBED
       printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
 #endif
+      errorMemSVC = true;
       return false;
     }
     
@@ -141,6 +145,8 @@ bool parseMessage(char *iMessage,
  * After receiving a message this method is designed to interpret
  * the msg, perform the proper operation and then either send back
  * a success/failure or return requested data
+ *
+ * TODO: return more memservice errors
  */
 
 unsigned int CTP7Server::processTCPMessage(void *iData,
@@ -148,6 +154,9 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
                                            unsigned int iMaxLength,
                                            unsigned int oMaxLength,
                                            unsigned int *dataArray) {
+  //
+  errorMemSVC = false;
+
   // Null terminated string interpretation
   char *iMessage = (char *) iData;
   char *oMessage = (char *) oData;
@@ -218,15 +227,22 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       else
         strcpy(oMessage, "SUCCESS");
       break;
-      
+
+    case(GetCaptureStatus):
+      unsigned int captureStatus;
+      captureStatus = 0;
+      if(!getCaptureStatus(captureStatus))
+        strcpy(oMessage, "ERROR_RETRIEVING_CAPTURE_STATUS");
+      else{
+        sprintf(oMessage, "%X" , captureStatus);}
+      break;
+  
     case(GetAddress):
       if(argc != 3)
         strcpy(oMessage, "ERROR_WRONG_NARGS");
       else{
         value = getAddress((BufferType) argv[0], argv[1], argv[2]);
         sprintf(oMessage, "%X", value);
-        //sprintf((char*)oData, "%X", value);
-        //dataArray[0]=value;
       }
       break;
       
@@ -428,14 +444,17 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   }
   
   //special return statement only for dumping large buffers, a finite use
-  if(functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters
-     ||functionType==DumpCRCErrors||functionType==DumpDecoderErrors||functionType==DumpAllLinkIDs)
+  if(!errorMemSVC && 
+     (functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters
+      ||functionType==DumpCRCErrors||functionType==DumpDecoderErrors||functionType==DumpAllLinkIDs))
     return bufferLen;
   
+  if(errorMemSVC)
+    strcpy(oMessage, "ERROR_WITH_MEMSVC");
+
   cout<<"oMessage "<< oMessage<< endl;
   oData = (void *) oMessage;
-  
-		
+  		
   return strlen(oMessage);
 }
 
@@ -452,6 +471,27 @@ bool CTP7Server::capture(){
     return false;
   return true;
 }
+
+/*
+ * Capture Status:
+ *    Idle  0x0     
+ *    Armed 0x1
+ *    Done  0x2
+ *                 
+ * TODO: Get Correct Address and values from Ales
+ */
+bool CTP7Server::getCaptureStatus(unsigned int captureStatus){
+
+  unsigned int buffer;
+
+  if(getData(CAPTURE_STATUS, 1, &buffer))
+    captureStatus = buffer;
+  else 
+    return false;
+  
+  return true;
+}
+
 /*
  * Counter Reset
  */
@@ -656,32 +696,49 @@ bool CTP7Server::dumpRegisterArray(std::vector<unsigned int> &vectorOfRegisters,
   return true;
 }
 
-
+/*
+ * Method to get a Single Address
+ *
+ * Most common use: Register Buffer Type, in this case the Address is given 
+ *                  to getData and the value is returned.
+ * Secondary use:   Input/Ouput Link Buffer Type, in this case the address 
+ *                  is calculated based on the link number and link base address
+ *		    a check to make sure the requested address is within the 
+ *		    specified link is performed.
+ */
 unsigned int CTP7Server::getAddress(BufferType b,
                                     unsigned int linkNumber,
                                     unsigned int addressOffset)
 {
   unsigned int address = 0;
-  if(b == registerBuffer)
-    address = addressOffset;
-  else if(b == inputBuffer) {
-    if(linkNumber < NILinks && !(addressOffset % sizeof(int)) &&
-       addressOffset < NIntsPerLink * sizeof(int)) {
-      address = ILinkBaseAddress + addressOffset;
-    }
-    else
+
+  switch(b)
+    {
+    case(registerBuffer):
+      address = addressOffset;
+      break;
+
+    case(inputBuffer):
+      if(linkNumber < NILinks && 
+	 !(addressOffset % sizeof(int)) &&
+	 addressOffset < NIntsPerLink * sizeof(int)){
+	address = ILinkBaseAddress + addressOffset;
+      }
+      break;      
+      
+    case(outputBuffer):
+      if(linkNumber < NOLinks &&
+	 !(addressOffset % sizeof(int)) &&
+	 addressOffset < NIntsPerLink * sizeof(int)) {
+	address = OLinkBaseAddress + addressOffset;
+      }
+      break;
+      
+    default:
       return 0xDEADBEEF;
-  }
-  else if(b == outputBuffer) {
-    if(linkNumber < NOLinks &&
-       !(addressOffset % sizeof(int)) &&
-       addressOffset < NIntsPerLink * sizeof(int)) {
-      address = OLinkBaseAddress + addressOffset;
-    }
-    else
-      return 0xDEADBEEF;
-  }
-  
+    
+    }  
+
   unsigned int buffer;
   
   if(getData(address, 1, &buffer))

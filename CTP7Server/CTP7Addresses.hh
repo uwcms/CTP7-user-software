@@ -18,6 +18,7 @@
 
 #define LinkIDBase          0x62000300
 #define CAPTURE             0x62000140
+#define CAPTURE_STATUS      0x62000154
 
 #define GT_TX_RESET_ENABLE_CXP0	0x62000010
 #define GT_TX_RESET_DONE_CXP0	0x62000018

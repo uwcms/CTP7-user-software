@@ -34,6 +34,12 @@ public:
     s2inputBuffer = 4
   };
 
+  enum CaptureStatus{
+    Idle = 0,
+    Armed = 1, 
+    Done = 2
+  };
+
   // Externally accessible functions to get/set on-board buffers
 
   virtual unsigned int getAddress(BufferType bufferType,
@@ -73,12 +79,13 @@ public:
   virtual bool setRandomPattern(BufferType bufferType,
 				unsigned int linkNumber, 
 				unsigned int randomSeed) = 0;
-
+  virtual bool getCaptureStatus(unsigned int CaptureStatus) = 0;
   virtual bool capture() = 0;
   virtual bool softReset() = 0;
   //virtual bool counterReset() = 0;
   virtual bool checkConnection() = 0;
   virtual bool hardReset() = 0;
+
 
   //virtual bool decoderLocked() = 0;
 

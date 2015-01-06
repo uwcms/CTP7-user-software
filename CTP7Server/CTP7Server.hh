@@ -134,12 +134,13 @@ public:
     bool setRandomPattern(BufferType bufferType,
                           unsigned int linkNumber,
                           unsigned int randomSeed);
+  bool getCaptureStatus(unsigned int captureStatus);
+  //static const char * CaptureStatusStrings[] = { "Idle", "Armed", "Done" };
     bool capture();
     bool softReset();
     bool counterReset();
-  bool checkConnection(){return true;}; //these need to be added as methods, current implentation is incorrect
-  bool hardReset(){return true;};//these need to be added as methods
-
+    bool checkConnection(){return true;}; //these need to be added as methods, current implentation is incorrect
+    bool hardReset(){return true;};//these need to be added as methods
     unsigned int processTCPMessage(void *iMessage,
                                    void *oMessage,
                                    unsigned int iMaxLength,
@@ -160,11 +161,13 @@ private:
     
     // Helper functions
 
+  bool errorMemSVC;
     /*
      * Enumerator for possible functions:
      */
     
-    enum functionType{
+  enum functionType{
+        GetCaptureStatus,
         GetLinkID,
         GetAddress,
         GetRegister,
