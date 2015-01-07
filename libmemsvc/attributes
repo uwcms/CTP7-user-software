@@ -1,6 +1,0 @@
-TYPE:libs
-BUILD_FILE:libs.common.mk
-COMPONENT_FILE:Makefile
-COPY_COMPONENT:Y
-BUILDALL:pre-build build post-build pre-install install
-BUILDconfig:notimplemented

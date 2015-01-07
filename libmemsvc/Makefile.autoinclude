@@ -1,8 +1,0 @@
-PROOT:=/afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7
-INSTANCE:=linux/rootfs/libmemsvc
--include /afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7/build/linux/Makefile.export
--include /afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7/build/linux/rootfs/Makefile.export
--include /afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7/build/linux/rootfs/libs/libmemsvc/Makefile.export
-CONFIGFILE:=/afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7/subsystems/linux/configs/rootfs/config
-dir_libs_y=/afs/hep.wisc.edu/user/uwhepfpga/petalinux-v2013.10-final/CTP7/components/libs/libmemsvc
-
