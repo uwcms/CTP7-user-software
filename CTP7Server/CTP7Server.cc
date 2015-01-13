@@ -13,7 +13,6 @@ using namespace std;
 #include "CTP7Server.hh"
 
 CTP7Server::CTP7Server() : verbose(false),
-			   configuration(0),
 			   savedBufferType(0),
 			   savedLinkNumber(0),
 			   savedNumberOfValues(0) {
@@ -21,6 +20,7 @@ CTP7Server::CTP7Server() : verbose(false),
     perror("Memory service connect failed");
     exit(1);
   }
+  computeAddresses();
 }
 
 CTP7Server::~CTP7Server() {
@@ -29,17 +29,175 @@ CTP7Server::~CTP7Server() {
   }
 }
 
-bool CTP7Server::setConfiguration(unsigned int input) {
-  configuration = input;
-  return true;
+void CTP7Server::computeAddresses() {
+  // Local array of maximum size needed of all register groups
+  uint32_t nAddresses = sizeof(TCDSRegisters) / sizeof(uint32_t);
+  uint32_t address[nAddresses];  
+  // InputLinkRegister Addresses
+  nAddresses= sizeof(InputLinkRegisters) / sizeof(uint32_t);
+  for(uint32_t iLink = 0; iLink < NILinks; iLink++) {
+    for(uint32_t i = 0; i < nAddresses; i++) {
+      address[i] = InputLinkRegistersBaseAddress + (iLink * nAddresses + i) * sizeof(uint32_t);
+    cout << showbase << internal << setfill('0') << setw(10) << hex
+	 << address[i] << endl;
+    }
+    cout << showbase << internal << setfill('0') << setw(10) << hex
+	 << address << endl;
+    InputLinkRegisters a;
+    memcpy(&a.LINK_STATUS_REG, &address[0], sizeof(InputLinkRegisters));
+    inputLinkRegisterAddresses.push_back(a);
+  }
+  // LinkAlignmentRegister Addresses
+  nAddresses = sizeof(LinkAlignmentRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = LinkAlignmentRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&linkAlignmentRegisterAddresses.LINK_ALIGN_REQ_REG, &address[0], sizeof(LinkAlignmentRegisters));
+  // InputCaptureRegister Addresses
+  nAddresses = sizeof(InputCaptureRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = InputCaptureRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&inputCaptureRegisterAddresses.CAPTURE_REQ_REG, &address[0], sizeof(InputCaptureRegisters));
+  // DAQSpyCaptureRegister Addresses
+  nAddresses = sizeof(DAQSpyCaptureRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = DAQSpyCaptureRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&daqSpyCaptureRegisterAddresses.DAQ_SPY_CAPTURE_REQ_REG, &address[0], sizeof(DAQSpyCaptureRegisters));
+  // DAQRegister Addresses
+  nAddresses = sizeof(DAQRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = DAQRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&daqRegisterAddresses.DAQ_L1A_DELAY_LINE_VALUE_REG, &address[0], sizeof(DAQRegisters));
+  // AMC13Register Addresses
+  nAddresses = sizeof(AMC13Registers) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = AMC13RegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&amc13RegisterAddresses.AMC13_LINK_READY_REG, &address[0], sizeof(AMC13Registers));
+  // TCDSRegister Addresses
+  nAddresses = sizeof(TCDSRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = TCDSRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&tcdsRegisterAddresses.BC_CLOCK_RST_REG, &address[0], sizeof(TCDSRegisters));
+  // TCDSMonitorRegister Addresses
+  nAddresses = sizeof(TCDSMonitorRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = TCDSMonitorRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&tcdsMonitorRegisterAddresses.TCDS_MON_CAPTURE_MASK_REG, &address[0], sizeof(TCDSMonitorRegisters));
+  // GTHRegister Addresses
+  nAddresses= sizeof(GTHRegisters) / sizeof(uint32_t);
+  for(uint32_t iLink = 0; iLink < NILinks; iLink++) {
+    for(uint32_t i = 0; i < nAddresses; i++) {
+      address[i] = GTHRegistersBaseAddress + (iLink * nAddresses + i) * sizeof(uint32_t);
+    }
+    GTHRegisters a;
+    memcpy(&a.GTH_STAT_REG, &address[0], sizeof(GTHRegisters));
+    gthRegisterAddresses.push_back(a);
+  }
+  // QPLLRegister Addresses
+  nAddresses= sizeof(QPLLRegisters) / sizeof(uint32_t);
+  for(uint32_t iQPLL = 0; iQPLL < NILinks / 4; iQPLL++) {
+    for(uint32_t i = 0; i < nAddresses; i++) {
+      address[i] = QPLLRegistersBaseAddress + (iQPLL * nAddresses + i) * sizeof(uint32_t);
+    }
+    QPLLRegisters a;
+    memcpy(&a.QPLL_STAT_REG, &address[0], sizeof(QPLLRegisters));
+    qpllRegisterAddresses.push_back(a);
+  }
+  // MiscRegister Addresses
+  nAddresses = sizeof(MiscRegisters) / sizeof(uint32_t);
+  for(uint32_t i = 0; i < nAddresses; i++) {
+    address[i] = MiscRegistersBaseAddress + i * sizeof(uint32_t);
+  }
+  memcpy(&miscRegisterAddresses.C_DATE_CODE_REG, &address[0], sizeof(MiscRegisters));
+}
+
+uint32_t CTP7Server::getAddress(BufferType bufferType, uint32_t offset) {
+  switch(bufferType) {
+  case(inputBuffer):
+    return ILinkBaseAddress + offset;
+  case(outputBuffer):
+    return OLinkBaseAddress + offset;
+  case(daqBuffer):
+    return DAQBufferBaseAddress + offset;
+  case(tcdsBuffer):
+    return TCDSBufferBaseAddress + offset;
+  case(inputLinkRegisters):
+    return InputLinkRegistersBaseAddress + offset;
+  case(linkAlignmentRegisters):
+    return LinkAlignmentRegistersBaseAddress + offset;
+  case(inputCaptureRegisters):
+    return InputCaptureRegistersBaseAddress + offset;
+  case(daqSpyCaptureRegisters):
+    return DAQSpyCaptureRegistersBaseAddress + offset;
+  case(daqRegisters):
+    return DAQRegistersBaseAddress + offset;
+  case(amc13Registers):
+    return AMC13RegistersBaseAddress + offset;
+  case(tcdsRegisters):
+    return TCDSRegistersBaseAddress + offset;
+  case(tcdsMonitorRegisters):
+    return TCDSMonitorRegistersBaseAddress + offset;
+  case(gthRegisters):
+    return GTHRegistersBaseAddress + offset;
+  case(qpllRegisters):
+    return QPLLRegistersBaseAddress + offset;
+  case(miscRegisters):
+    return MiscRegistersBaseAddress + offset;
+  case(unnamed):
+    return offset; // This is super dangerous, but we use it for kludging
+  }
+}
+
+uint32_t CTP7Server::getMaxAddress(BufferType bufferType) {
+  switch(bufferType) {
+  case(inputBuffer):
+    return ILinkBaseAddress + NILinks * LinkBufSize;
+  case(outputBuffer):
+    return OLinkBaseAddress + NOLinks * LinkBufSize;
+  case(daqBuffer):
+    return DAQBufferBaseAddress + NIntsInDAQBuffer * sizeof(uint32_t);
+  case(tcdsBuffer):
+    return TCDSBufferBaseAddress + NIntsInTCDSBuffer * sizeof(uint32_t);
+  case(inputLinkRegisters):
+    return InputLinkRegistersBaseAddress + NILinks * sizeof(InputLinkRegisters);
+  case(linkAlignmentRegisters):
+    return LinkAlignmentRegistersBaseAddress + sizeof(LinkAlignmentRegisters);
+  case(inputCaptureRegisters):
+    return InputCaptureRegistersBaseAddress + sizeof(InputCaptureRegisters);
+  case(daqSpyCaptureRegisters):
+    return DAQSpyCaptureRegistersBaseAddress + sizeof(DAQSpyCaptureRegisters);
+  case(daqRegisters):
+    return DAQRegistersBaseAddress + sizeof(DAQRegisters);
+  case(amc13Registers):
+    return AMC13RegistersBaseAddress + sizeof(AMC13Registers);
+  case(tcdsRegisters):
+    return TCDSRegistersBaseAddress + sizeof(TCDSRegisters);
+  case(tcdsMonitorRegisters):
+    return TCDSMonitorRegistersBaseAddress + sizeof(TCDSMonitorRegisters);
+  case(gthRegisters):
+    return GTHRegistersBaseAddress + (NILinks + NOLinks) * sizeof(GTHRegisters);
+  case(qpllRegisters):
+    return QPLLRegistersBaseAddress + (NILinks + NOLinks) * sizeof(QPLLRegisters);
+  case(miscRegisters):
+    return MiscRegistersBaseAddress + sizeof(MiscRegisters);
+  case(unnamed):
+    // This is super dangerous, but we use it for kludging
+    return MEMSVC_MAX_WORDS * sizeof(uint32_t);
+  }
 }
 
 // Memory Access
 // TODO: Send more info sent to client when memsvc access fails
 
-bool CTP7Server::getData(unsigned int address,
-                         unsigned int numberOfValues,
-                         unsigned int *buffer) {
+bool CTP7Server::getData(uint32_t address,
+                         uint32_t numberOfValues,
+                         uint32_t *buffer) {
   int wordsToGo = numberOfValues;
   int wordsDone = 0;
   
@@ -60,13 +218,13 @@ bool CTP7Server::getData(unsigned int address,
 }
 
 // Memory Access
-bool CTP7Server::putData(unsigned int address,
-                         unsigned int numberOfValues,
-                         unsigned int *buffer) {
+bool CTP7Server::putData(uint32_t address,
+                         uint32_t numberOfValues,
+                         uint32_t *buffer) {
   
   int wordsToGo = numberOfValues;
   int wordsDone = 0;
-  unsigned int writeBuffer = 0;
+  uint32_t writeBuffer = 0;
   
   while(wordsToGo > 0) {
     int words = 1;
@@ -92,9 +250,9 @@ bool CTP7Server::putData(unsigned int address,
  * Mini-service to handle single poking operations
  */
 
-bool CTP7Server::poke(unsigned int address, unsigned int value)
+bool CTP7Server::poke(uint32_t address, uint32_t value)
 {
-  unsigned int valuePtr = value;
+  uint32_t valuePtr = value;
   if(putData(address,1,&valuePtr))
     return true;
   return false;
@@ -102,40 +260,50 @@ bool CTP7Server::poke(unsigned int address, unsigned int value)
 
 // Message Handling
 
-bool parseMessage(char *iMessage,
-                  unsigned int &argc,
-                  unsigned int *argv,
-                  char *oMessage)
-{
+bool CTP7Server::parseMessage(char *iMessage,
+			      char *function,
+			      uint32_t &argc,
+			      uint32_t *argv,
+			      char *oMessage) {
   
-  char *function = strtok(iMessage, "(");
+  function = strtok(iMessage, "(");
   if(function == NULL) {
     strcpy(oMessage, "ERROR: Failed to parse message; Function is null");
     return false;
   }
   
-  char *token;
-  while(true) {
-    token = strtok(NULL, ",)");
-    if(token != NULL) {
-      if(sscanf(token, "%X", &argv[argc]) == 1) {
-        argc++;
+  if(strcmp(function, "SetConfiguration") == 0) {
+    // Copy the content between "(" and ")" to configuration string
+    // It is returned using GetConfiguration
+    // There is no local use of this configuration
+    // It is just provided for user convenience
+    char *token = strtok(NULL, ")");
+    setConfiguration(token);
+  }
+  else {
+    while(true) {
+      char *token = strtok(NULL, ",)");
+      if(token != NULL) {
+	if(sscanf(token, "%X", &argv[argc]) == 1) {
+	  argc++;
+	}
+	else {
+	  strcpy(oMessage, "ERROR: Failed to parse message; Function = ");
+	  strcat(oMessage, function);
+	  sprintf(&oMessage[strlen(oMessage)], " ; argc = %d; ", argc);
+	  strcat(oMessage, " and Token = ");
+	  strcat(oMessage, token);
+	  return false;
+	}
       }
       else {
-        strcpy(oMessage, "ERROR: Failed to parse message; Function = ");
-        strcat(oMessage, function);
-        sprintf(&oMessage[strlen(oMessage)], " ; argc = %d; ", argc);
-        strcat(oMessage, " and Token = ");
-        strcat(oMessage, token);
-        return false;
+	break;
       }
     }
-    else {
-      break;
-    }
   }
-  //cout<<"argc "<<argc<<" argv[0]: " << argv[0] << " argv[1] "<< argv[1]<<endl;
+
   return true;
+
 }
 
 
@@ -149,11 +317,11 @@ bool parseMessage(char *iMessage,
  * TODO: return more memservice errors
  */
 
-unsigned int CTP7Server::processTCPMessage(void *iData,
-                                           void *oData,
-                                           unsigned int iMaxLength,
-                                           unsigned int oMaxLength,
-                                           unsigned int *dataArray) {
+uint32_t CTP7Server::processTCPMessage(void *iData,
+				       void *oData,
+				       uint32_t iMaxLength,
+				       uint32_t oMaxLength,
+				       uint32_t *dataArray) {
   //
   errorMemSVC = false;
 
@@ -171,30 +339,23 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
   
   // Add null termination as we expect a message string
   iMessage[iMaxLength] = 0;
-  
-  // Decode message and handle it, for now presume function is unique with 10 char array
-  
-  char function[10];
-  strncpy(function,iMessage,10);
-  unsigned int argc = 0;
-  unsigned int argv[6];
-  
-  //cout<<"iMessage: "<<iMessage<<" function: "<< function<<endl;
-  
-  if(!parseMessage(iMessage, argc, argv, oMessage)) {
+
+  char *function;
+  uint32_t argc = 0;
+  uint32_t argv[6];
+  if(!parseMessage(iMessage, function, argc, argv, oMessage)) {
     strcpy(oMessage, "ERROR_FAIL_TO_PARSE");
     return strlen(oMessage);
   }
   
   //Determine which function will be accessed
-  functionType functionType = ERROR;
-  unsigned int value = 0;
-  
-  if(!getFunctionType(function,functionType))
+  function = iMessage;
+  FunctionType functionType = ERROR;
+  if(!getFunctionType(function, functionType))
     return strlen(oMessage);
   
   //Special Buffer Length Return for Mem dumps
-  unsigned int bufferLen = 0;
+  uint32_t bufferLen = 0;
   
   if(functionType==ERROR)
     std::cout<<"FunctionType == ERROR!!"<<std::endl;
@@ -210,12 +371,11 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
    * Guidelines: Each operation has a check to see if it was
    * successful, if not successful, return an error message
    *
-   * TODO:Make dump status more flexible to have options for
-   * different sets of registers to dump
    */
   
+  CaptureStatus captureStatus = Idle;
   switch(functionType)
-  {
+    {
       
     case(CheckConnection):
       strcpy(oMessage, "HelloToYou!");
@@ -229,89 +389,20 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       break;
 
     case(GetCaptureStatus):
-      unsigned int captureStatus;
-      captureStatus = 0;
-      if(!getCaptureStatus(captureStatus))
+      if(!getCaptureStatus(&captureStatus))
         strcpy(oMessage, "ERROR_RETRIEVING_CAPTURE_STATUS");
-      else{
-        sprintf(oMessage, "%X" , captureStatus);}
+      else
+        sprintf(oMessage, "%X" , captureStatus);
       break;
   
-    case(GetAddress):
-      if(argc != 3)
-        strcpy(oMessage, "ERROR_WRONG_NARGS");
-      else{
-        value = getAddress((BufferType) argv[0], argv[1], argv[2]);
-        sprintf(oMessage, "%X", value);
-      }
-      break;
-      
-    case(GetRegister):
-      if(argc != 1)
-        strcpy(oMessage, "ERROR_WRONG_NARGS");
-      else{
-        value = getRegister(argv[0]);
-        sprintf(oMessage, "%X", value);
-      }
-      break;
-      
-    case(GetLinkID):
-      if(argc != 3)
-        strcpy(oMessage, "ERROR_WRONG_NARGS");
-      else{
-        value = getAddress((BufferType) argv[0], 0, LinkIDBase + 4 * argv[2]);
-        sprintf(oMessage, "%X", value);
-        //sprintf((char*)oData, "%X", value);
-        //dataArray[0]=value;
-      }
-      break;
-      
-    case(SetConfiguration):
-      if(argc != 1)
-	strcpy(oMessage, "ERROR_WRONG_NARGS");
-      else
-        if(setConfiguration(argv[0]))
-          strcpy(oMessage, "SUCCESS");
-	else
-	  strcpy(oMessage, "ERROR_CONFIGURING");
+    case(GetConfiguration):
+      strcpy(oMessage, configuration.c_str());
       break;
 
-    case(SetRegister):
-      if(argc != 2 )
-        strcpy(oMessage, "ERROR_WRONG_NARGS");
-      else
-        if(setRegister(argv[0], argv[1]))
-          strcpy(oMessage, "SUCCESS");
-        else
-          strcpy(oMessage, "ERROR_GETTING_ADDRESS");
+    case(SetConfiguration):
+      strcpy(oMessage, "SUCCESS");
       break;
-      
-    case(SetAddress):
-      if(argc != 4)
-        strcpy(oMessage, "ERROR_WRONG_NARGS_FAILED_To_Set_Address");
-      else
-        if(setAddress((BufferType) argv[0], argv[1], argv[2], argv[3]))
-          strcpy(oMessage, "SUCCESS");
-        else
-          strcpy(oMessage, "ERROR_WRONG_NARGS_FAILED_To_Set_Address");
-      break;
-      
-    case(DumpContiguousBuffer):
-      if(argc != 4)
-        strcpy(oMessage, "ERROR_WRONG_NARGS");
-      else
-        if(argv[3] < oMaxLength / 4)
-          if(dumpContiguousBuffer((BufferType) argv[0], argv[1], argv[2], argv[3],(unsigned int *) oData))
-            bufferLen = (argv[3] * 4);
-          else
-            strcpy(oMessage, "ERROR: dumpContiguousBuffer failed mysteriously");
-          else
-            strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
-      if(bufferLen==0)
-        bufferLen = strlen(oMessage);
-      break;
-      
-      //Begin Set Pattern
+
     case(SetConstantPattern):
       if(argc != 3)
         strcpy(oMessage, "ERROR_WRONG_NARGS");
@@ -362,7 +453,6 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
           strcpy(oMessage, "FAILED__NOT_READY_FOR_PATTERN_DATA");
       break;
       
-      //Begin system operations, no need for arg check
     case(SoftReset):
       if(softReset())
         strcpy(oMessage, "SUCCESS");
@@ -377,61 +467,51 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
         strcpy(oMessage, "FAILED_COUNTER_RESET");
       break;
       
-    case(DumpStatusRegisters):
-      //nStatusInts declared in header
-      nStatusInts = statusRegisterSize;
-      vec.reserve(nStatusInts);
-      fillStatusVector(vec);
-      if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
-        //add 1 for the versionNumber
-        bufferLen = ( vec.size() + 1 ) * 4;
-      else{
-        strcpy(oMessage, "FAILED_TO_DUMP_STATUS_REGISTERS");
-        bufferLen = strlen(oMessage);}
+    case(GetValue):
+      if(argc != 2)
+        strcpy(oMessage, "ERROR_WRONG_NARGS");
+      else {
+	uint32_t value = getValue((BufferType) argv[0], argv[1]);
+	sprintf(oMessage, "%X", value);
+      }
+      break;
+
+    case(SetValue):
+      if(argc != 3)
+        strcpy(oMessage, "ERROR_WRONG_NARGS_FAILED_To_Set_Value");
+      else
+	if(setValue((BufferType) argv[0], argv[1], argv[2]))
+	  strcpy(oMessage, "SUCCESS");
+	else
+	  strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
       break;
       
-    case(DumpTSStatusRegisters):
-      nStatusInts = statusRegisterSize;
-      vec.reserve(nStatusInts);
-      fillTSStatusVector(vec);
-      
-      if(dumpRegisterArray(vec,nStatusInts,(unsigned int *) oData))
-        //add 1 for the versionNumber
-        bufferLen = ( vec.size() + 1 ) * 4;
-      else{
-        strcpy(oMessage, "FAILED_TO_DUMP_TS_STATUS_REGISTERS");
-        bufferLen = strlen(oMessage);}
+    case(GetValues):
+      if(argc != 3)
+        strcpy(oMessage, "ERROR_WRONG_NARGS");
+      else
+        if(argv[2] < oMaxLength / 4)
+          if(getValues((BufferType) argv[0], argv[1], argv[2], (uint32_t *) oData))
+            bufferLen = (argv[2] * 4);
+          else
+            strcpy(oMessage, "ERROR: getData failed mysteriously");
+	else
+	  strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
+      if(bufferLen==0) bufferLen = strlen(oMessage);
       break;
       
-    case(DumpAllLinkIDs):
-      BufferType linkIDType;
-      linkIDType = unnamed;
-      if(dumpContiguousBuffer( linkIDType, 0, LinkIDBase, NILinks , (unsigned int *) oData))
-        bufferLen = ((NILinks+1)  * 4);
-      else{
-        strcpy(oMessage, "FAILED_TO_DUMP_LINK_IDS" );
-        bufferLen = strlen(oMessage);}
-      break;
-      
-      
-    case(DumpCRCErrors):
-      BufferType crcType;
-      crcType = unnamed;
-      if(dumpContiguousBuffer(crcType, 0, CRC_ERR_CNT_BASE, NILinks, (unsigned int *) oData))
-        bufferLen = ((NILinks+1) * 4);
-      else{
-        strcpy(oMessage, "FAILED_TO_DUMP_CRC_ERRORS" );
-        bufferLen = strlen(oMessage);}
-      break;
-      
-    case(DumpDecoderErrors):
-      BufferType decoderType;
-      decoderType = unnamed;
-      if(dumpContiguousBuffer(decoderType, 0, DECODER_UNLOCKED_CNT_BASE, 36, (unsigned int *) oData))
-        bufferLen = (36 * 4);
-      else{
-        strcpy(oMessage, "FAILED_TO_DUMP_DECODER_ERRORS" );
-        bufferLen = strlen(oMessage);}
+    case(SetValues):
+      if(argc != 3)
+        strcpy(oMessage, "ERROR_WRONG_NARGS");
+      else
+        if(argv[2] < oMaxLength / 4)
+          if(setValues((BufferType) argv[0], argv[1], argv[2], (uint32_t *) oData))
+            bufferLen = (argv[2] * 4);
+          else
+            strcpy(oMessage, "ERROR: setData failed mysteriously");
+	else
+	  strcpy(oMessage, "ERROR_WRONG_NINTS_IN_INPUT_MSG");
+      if(bufferLen==0) bufferLen = strlen(oMessage);
       break;
       
     case(ERROR):
@@ -441,12 +521,11 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
       //Note: We should never get to default; included only for completeness
     default:
       strcpy(oMessage, "INPUT_FUNCTION_NOTFOUND");
-  }
+
+    }
   
   //special return statement only for dumping large buffers, a finite use
-  if(!errorMemSVC && 
-     (functionType==DumpContiguousBuffer||functionType==DumpStatusRegisters
-      ||functionType==DumpCRCErrors||functionType==DumpDecoderErrors||functionType==DumpAllLinkIDs))
+  if(!errorMemSVC && (functionType==GetValues))
     return bufferLen;
   
   if(errorMemSVC)
@@ -463,33 +542,13 @@ unsigned int CTP7Server::processTCPMessage(void *iData,
  */
 
 bool CTP7Server::capture(){
-  if(!poke( CAPTURE    , 0x0 ))
-    return false;
-  if(!poke( CAPTURE    , 0x1 ))
-    return false;
-  if(!poke( CAPTURE    , 0x0 ))
+  if(!poke(inputCaptureRegisterAddresses.CAPTURE_REQ_REG    , 0x1 ))
     return false;
   return true;
 }
 
-/*
- * Capture Status:
- *    Idle  0x0     
- *    Armed 0x1
- *    Done  0x2
- *                 
- * TODO: Get Correct Address and values from Ales
- */
-bool CTP7Server::getCaptureStatus(unsigned int captureStatus){
-
-  unsigned int buffer;
-
-  if(getData(CAPTURE_STATUS, 1, &buffer))
-    captureStatus = buffer;
-  else 
-    return false;
-  
-  return true;
+bool CTP7Server::getCaptureStatus(CaptureStatus *captureStatus){
+  return getData(inputCaptureRegisterAddresses.CAPTURE_MODE_REG, 1, (uint32_t*) captureStatus);
 }
 
 /*
@@ -497,18 +556,6 @@ bool CTP7Server::getCaptureStatus(unsigned int captureStatus){
  */
 bool CTP7Server::counterReset()
 {
-  if(!poke( RX_CAPTURE_ENGINE_RESET_EN     , 0x1 ))
-    return false;
-  if(!poke( RX_CAPTURE_ENGINE_RESET_EN     , 0x0 ))
-    return false;
-  if(!poke( RX_CRC_ERROR_CNT_RST_EN        , 0x1 ))
-    return false;
-  if(!poke( RX_CRC_ERROR_CNT_RST_EN        , 0x0 ))
-    return false;
-  if(!poke( RX_DECODER_UNLOCKED_CNT_RST_EN , 0x1 ))
-    return false;
-  if(!poke( RX_DECODER_UNLOCKED_CNT_RST_EN , 0x0 ))
-    return false;
   return true;
 }
 
@@ -518,28 +565,6 @@ bool CTP7Server::counterReset()
 
 bool CTP7Server::softReset()
 {
-  //enable GTX RX RESET
-  if(!poke( GT_RX_RESET_EN_CXP0 , 0xfff ))
-    return false;
-  if(!poke( GT_RX_RESET_EN_CXP1 , 0xfff ))
-    return false;
-  if(!poke( GT_RX_RESET_EN_CXP2 , 0xfff ))
-    return false;
-  
-  //RESET QPLL
-  if(!poke( QPLL_RESET          , 0x1ff ))
-    return false;
-  if(!poke( QPLL_RESET          , 0x0   ))
-    return false;
-  
-  //disable GTX RX REST
-  if(!poke( GT_RX_RESET_EN_CXP0 , 0x0   ))
-    return false;
-  if(!poke( GT_RX_RESET_EN_CXP1 , 0x0   ))
-    return false;
-  if(!poke( GT_RX_RESET_EN_CXP2 , 0x0   ))
-    return false;
-  
   return true;
 }
 
@@ -549,54 +574,40 @@ bool CTP7Server::softReset()
  * This compares the received msg to the optional valid msg
  */
 
-bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
+bool CTP7Server::getFunctionType(char* function, FunctionType &functionType)
 {
   strcat(function,"\0");
   std::cout<<"function :"<<function <<std::endl;
   functionType = ERROR;
-  if(strncmp(function,      "getAddress", 5) == 0)
-    functionType = GetAddress;
-  else if(strncmp(function, "getLinkID", 8) == 0)
-    functionType = GetLinkID;
-  else if(strncmp(function, "capture",5) == 0)
+  if(strcmp(function,      "getValue") == 0)
+    functionType = GetValue;
+  else if(strcmp(function, "getValues") == 0)
+    functionType = GetValues;
+  else if(strcmp(function, "setValue") == 0)
+    functionType = SetValue;
+  else if(strcmp(function, "setValues") == 0)
+    functionType = SetValues;
+  else if(strcmp(function, "capture") == 0)
     functionType = Capture;
-  else if(strncmp(function, "getRegister", 10) == 0)
-    functionType = GetRegister;
-  else if(strncmp(function, "setPattern", 10) == 0)
-    functionType = SetPattern;
-  else if(strncmp(function, "setConfiguration", 10) == 0)
+  else if(strcmp(function, "getConfiguration") == 0)
+    functionType = GetConfiguration;
+  else if(strcmp(function, "setConfiguration") == 0)
     functionType = SetConfiguration;
-  else if(strncmp(function, "setRegister", 10) == 0)
-    functionType = SetRegister;
-  else if(strncmp(function, "setAddress", 10) == 0)
-    functionType = SetAddress;
-  else if(strncmp(function, "dumpContiguousBuffer", 10) == 0)
-    functionType = DumpContiguousBuffer;
-  else if(strncmp(function, "setConstantPattern", 10) == 0)
+  else if(strcmp(function, "setConstantPattern") == 0)
     functionType = SetConstantPattern;
-  else if(strncmp(function, "setIncreasingPattern", 10) == 0)
+  else if(strcmp(function, "setIncreasingPattern") == 0)
     functionType = SetIncreasingPattern;
-  else if(strncmp(function, "setDecreasingPattern", 10) == 0)
+  else if(strcmp(function, "setDecreasingPattern") == 0)
     functionType = SetDecreasingPattern;
-  else if(strncmp(function, "setRandomPattern", 10) == 0)
+  else if(strcmp(function, "setRandomPattern") == 0)
     functionType = SetRandomPattern;
-  else if(strncmp(function, "setPattern", 10) == 0)
+  else if(strcmp(function, "setPattern") == 0)
     functionType = SetPattern;
-  else if(strncmp(function, "softReset", 10) == 0)
+  else if(strcmp(function, "softReset") == 0)
     functionType = SoftReset;
-  else if(strncmp(function, "counterReset", 10) == 0)
+  else if(strcmp(function, "counterReset") == 0)
     functionType = CounterReset;
-  else if(strncmp(function, "dumpStatus", 10) == 0)
-    functionType = DumpStatusRegisters;
-  else if(strncmp(function, "dumpTSStatus", 10) == 0)
-    functionType = DumpTSStatusRegisters;
-  else if(strncmp(function, "dumpCRCErrors", 10) == 0)
-    functionType = DumpCRCErrors;
-  else if(strncmp(function, "dumpAllLinkIDs", 10) == 0)
-    functionType = DumpAllLinkIDs;
-  else if(strncmp(function, "dumpDecoderErrors", 10) == 0)
-    functionType = DumpDecoderErrors;
-  else if(strncmp(function, "Hello", 5) == 0)
+  else if(strcmp(function, "Hello") == 0)
     functionType = CheckConnection;
   if(functionType == ERROR)
     std::cout<<"function type is not valid!!!"<<std::endl;
@@ -604,239 +615,79 @@ bool CTP7Server::getFunctionType(char function[10], functionType &functionType)
   return true;
 }
 
-// TODO: migrate to c++11 to make use of initialization list
-// note: in normal c++ compiler it is possible to initialize
-// an array with array[2]={1,2}
-
-bool CTP7Server::fillStatusVector(std::vector<unsigned int> & vector)
-{
-  vector.push_back( QPLL_RESET          );
-  vector.push_back( QPLL_LOCK           );
-  vector.push_back( DECODER_LOCKED_CXP0 );
-  vector.push_back( DECODER_LOCKED_CXP1 );
-  vector.push_back( DECODER_LOCKED_CXP2 );
-  vector.push_back( CAPTURE_DONE_CXP0   );
-  vector.push_back( CAPTURE_DONE_CXP1   );
-  vector.push_back( CAPTURE_DONE_CXP2   );
-  vector.push_back( GT_RX_RESET_EN_CXP0 );
-  vector.push_back( GT_RX_RESET_EN_CXP1 );
-  vector.push_back( GT_RX_RESET_EN_CXP2 );
-  vector.push_back( TX_PRBS_SEL         );
-  vector.push_back( RX_PRBS_SEL         );
-  vector.push_back( GT_LOOPBACK         );
-  vector.push_back( MMCM_RST_EN         );
-  vector.push_back( MMCM_LOCKED         );
-  vector.push_back( BC0_ERR             );
-  vector.push_back( BC0_LOCKED          );
-  vector.push_back( FW_DATE_CODE        );
-  vector.push_back( FW_GIT_HASH         );
-  vector.push_back( FW_GIT_HASH_DIRTY   );
-  
-  //std::cout<<"fillStatusVector"<<std::endl;
-  //for(unsigned int i = 0; i<vector.size() ; i++)
-  //std::cout<<"vector.at("<<i<<") " <<vector.at(i)<<std::endl;
-  
-  return true;
-}
-
-bool CTP7Server::fillTSStatusVector(std::vector<unsigned int> & vector)
-{
-  vector.push_back( QPLL_RESET          );
-  vector.push_back( QPLL_LOCK           );
-  vector.push_back( CAPTURE_DONE_CXP0   );
-  vector.push_back( CAPTURE_DONE_CXP1   );
-  vector.push_back( CAPTURE_DONE_CXP2   );
-  vector.push_back( GT_RX_RESET_EN_CXP0 );
-  vector.push_back( GT_RX_RESET_EN_CXP1 );
-  vector.push_back( GT_RX_RESET_EN_CXP2 );
-  vector.push_back( TX_PRBS_SEL         );
-  vector.push_back( RX_PRBS_SEL         );
-  vector.push_back( GT_LOOPBACK         );
-  vector.push_back( MMCM_RST_EN         );
-  vector.push_back( MMCM_LOCKED         );
-  vector.push_back( BC0_ERR             );
-  vector.push_back( BC0_LOCKED          );
-  vector.push_back( FW_DATE_CODE        );
-  vector.push_back( FW_GIT_HASH         );
-  vector.push_back( FW_GIT_HASH_DIRTY   );
-  
-  //std::cout<<"fillStatusVector"<<std::endl;
-  //for(unsigned int i = 0; i<vector.size() ; i++)
-  //std::cout<<"vector.at("<<i<<") " <<vector.at(i)<<std::endl;
-  
-  return true;
-}
-
-/*
- * Get Link ID
- 
-
-bool CTP7Server::getLinkID(unsigned int ){
-  if(!poke(LINK_ID_TO_GET,value));
-  if(!poke(LINK_ID_TO_GET,value));
-    
-    
-}
-*/
-
-/*
- * Input: array of status registers
- * Output: array of their statuses
- */
-
-bool CTP7Server::dumpRegisterArray(std::vector<unsigned int> &vectorOfRegisters,
-				   unsigned int nInts, 
-				   unsigned int *buffer)
-{
-  buffer[0]=0xc0000001;
-  for(unsigned int i = 0; i < nInts ; i++){
-    buffer[i+1] = getRegister(vectorOfRegisters.at(i));
-    //std::cout<<dec<<vectorOfRegisters.at(i) <<" vectorOfRegisters["<<i<<"] "<<hex<< vectorOfRegisters.at(i) <<" buffer "<< buffer[i+1] <<std::endl;
-  }
-  return true;
-}
-
-/*
- * Method to get a Single Address
- *
- * Most common use: Register Buffer Type, in this case the Address is given 
- *                  to getData and the value is returned.
- * Secondary use:   Input/Ouput Link Buffer Type, in this case the address 
- *                  is calculated based on the link number and link base address
- *		    a check to make sure the requested address is within the 
- *		    specified link is performed.
- */
-unsigned int CTP7Server::getAddress(BufferType b,
-                                    unsigned int linkNumber,
-                                    unsigned int addressOffset)
-{
-  unsigned int address = 0;
-
-  switch(b)
-    {
-    case(registerBuffer):
-      address = addressOffset;
-      break;
-
-    case(inputBuffer):
-      if(linkNumber < NILinks && 
-	 !(addressOffset % sizeof(int)) &&
-	 addressOffset < NIntsPerLink * sizeof(int)){
-	address = ILinkBaseAddress + addressOffset;
-      }
-      break;      
-      
-    case(outputBuffer):
-      if(linkNumber < NOLinks &&
-	 !(addressOffset % sizeof(int)) &&
-	 addressOffset < NIntsPerLink * sizeof(int)) {
-	address = OLinkBaseAddress + addressOffset;
-      }
-      break;
-      
-    default:
-      return 0xDEADBEEF;
-    
-    }  
-
-  unsigned int buffer;
-  
-  if(getData(address, 1, &buffer))
-    return buffer;
-  
+uint32_t CTP7Server::getValue(BufferType b,
+			      uint32_t addressOffset) {
+  if(addressOffset % sizeof(uint32_t)) return false;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
+  uint32_t value;
+  if(getData(address, 1, &value)) return value;
   return 0xDEADBEEF;
-  
 }
 
-bool CTP7Server::setAddress(BufferType b,
-                            unsigned int linkNumber,
-                            unsigned int addressOffset,
-                            unsigned int value)
-{
-  unsigned int address = 0;
-  if(b == registerBuffer) {
-    if( !(addressOffset % sizeof(int))) {
-      address = addressOffset;
-    }
-    else
-      return false;
-  }
-  else if(b == inputBuffer) {
-    if(linkNumber < NILinks && !(addressOffset % sizeof(int)) &&
-       addressOffset < NIntsPerLink * sizeof(int)) {
-      address = ILinkBaseAddress + addressOffset;
-    }
-    else
-      return false;
-  }
-  else if(b == outputBuffer) {
-    if(linkNumber < NOLinks && !(addressOffset % sizeof(int)) &&
-       addressOffset < NIntsPerLink * sizeof(int)) {
-      address = OLinkBaseAddress + addressOffset;
-    }
-    else
-      return false;
-  }
-  
+bool CTP7Server::setValue(BufferType b,
+			  uint32_t addressOffset,
+			  uint32_t value) {
+  if(addressOffset % sizeof(uint32_t)) return false;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
   return putData(address, 1, &value);
 }
 
-bool CTP7Server::dumpContiguousBuffer(BufferType b,
-                                      unsigned int linkNumber,
-                                      unsigned int startAddressOffset,
-                                      unsigned int numberOfValues,
-                                      unsigned int *buffer)
-{
+bool CTP7Server::getValues(BufferType b,
+			   uint32_t startAddressOffset,
+			   uint32_t numberOfValues,
+			   uint32_t *buffer) {
+  if(startAddressOffset % sizeof(uint32_t)) return false;
   if(buffer == 0) buffer = localBuffer;
-  
-  unsigned int address;
-  unsigned int maxAddress;
-  
-  if(b == inputBuffer) {
-    address = getInputLinkAddress( linkNumber , startAddressOffset );
-    maxAddress = maxILinkAddress;
-  }
-  else if(b == outputBuffer) {
-    address = getOutputLinkAddress( linkNumber , startAddressOffset);
-    maxAddress = maxOLinkAddress;
-  }
-  else if(b == registerBuffer) {
-    address = RegBaseAddress + startAddressOffset;
-    maxAddress = RegBaseAddress + RegBufSize;
-  }
-  else {
-    address = startAddressOffset;
-    maxAddress = 0xFFFFFFFF;
-  }
-  
-  unsigned int endAddress = address + numberOfValues * 4;
-  
-  if(endAddress > maxAddress) return false;
-  
-  if( getData (address, numberOfValues, buffer) ) {
-    //printBuffer(address, numberOfValues, buffer);
-    return true;
-  }
-
-  return false;
+  uint32_t address = getAddress(b, startAddressOffset);
+  if(address == BadAddress) return false;
+  uint32_t endAddress = address + numberOfValues * 4;
+  if(endAddress > getMaxAddress(b)) return false;
+  return getData(address, numberOfValues, buffer);
 }
 
-bool CTP7Server::printBuffer(unsigned int address, unsigned int numberOfValues, unsigned int * buffer)
+bool CTP7Server::setValues(BufferType b,
+			   uint32_t startAddressOffset,
+			   uint32_t numberOfValues,
+			   uint32_t *values) {
+  if(startAddressOffset % sizeof(uint32_t)) return false;
+  uint32_t address = getAddress(b, startAddressOffset);
+  if(address == BadAddress) return false;
+  uint32_t endAddress = address + numberOfValues * 4;
+  if(endAddress > getMaxAddress(b)) return false;
+  for(uint32_t i = 0 , j = 0; i < numberOfValues; i++) {
+    localBuffer[j++] = values[i];
+    //only write if these conditions are satisfied
+    //we only want to write at most a page at a time
+    if(j == PAGE_INTS || j == numberOfValues ){
+      if(!putData(address, j, localBuffer)) {
+	std::cout<<"Error putting data!!"<<std::endl;
+	return false;
+      }
+      address += j*4;
+      j = 0;
+    }
+  }
+  return true;
+}
+
+bool CTP7Server::printBuffer(uint32_t address, uint32_t numberOfValues, uint32_t * buffer)
 {
   if(numberOfValues > 1) {
     cout << showbase << internal << setfill('0') << setw(10) << hex
-    << "Dump of data from address = "
-    << address << endl;
+	 << "Dump of data from address = "
+	 << address << endl;
   }
-  for(unsigned int i = 0; i < numberOfValues; i++) {
+  for(uint32_t i = 0; i < numberOfValues; i++) {
     if(numberOfValues == 1) {
       cout << showbase << internal << setfill('0') << setw(10) << hex
-      << "Content of address " << address << " = "
-      << buffer[i] << endl;
+	   << "Content of address " << address << " = "
+	   << buffer[i] << endl;
     }
     else {
       cout << noshowbase << internal << setfill('0') << setw(8) << hex
-      << buffer[i] << " ";
+	   << buffer[i] << " ";
       if(((i + 1) % 8) == 0) cout << endl;
     }
   }
@@ -856,33 +707,32 @@ bool CTP7Server::printBuffer(unsigned int address, unsigned int numberOfValues, 
  * and return
  */
 
-unsigned int CTP7Server::handlePatternData(void* iData, void* oData,
-                                           unsigned int iMaxLength,
-                                           unsigned int oMaxLength)
+uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
+				       uint32_t iMaxLength,
+				       uint32_t oMaxLength)
 {
   
   char *oMessage = (char *) oData;
   
-  // First call setPattern(bufferType,Link,nInts), set savedNumberOfvalues
-  // iData should be NULL here as we are only inputting a message
+  // For first call iData should be NULL here as we are only inputting a message
   if(iData == NULL) {
     patternData.clear();
-    unsigned int *argv = (unsigned int*) oData;
+    uint32_t *argv = (uint32_t*) oData;
     savedBufferType = argv[0];
     savedLinkNumber = argv[1];
     savedNumberOfValues = argv[2];
     return 0;
   }
   
-  // Second Call sends a buffer of ints
+  // Second call on sends a buffer of ints
   // iData should be non NULL here
   
   if(iData != NULL){
-    unsigned int *intValues = (unsigned int*) iData;
-    for(unsigned int i = 0; i < max(savedNumberOfValues, iMaxLength); i++) {
+    uint32_t *intValues = (uint32_t*) iData;
+    for(uint32_t i = 0; i < max(savedNumberOfValues, iMaxLength); i++) {
       patternData.push_back(intValues[i]);
     }
-    
+
     //Adjust Saved Number Of Values
     //-->This will check to see if more values need to be sent
     savedNumberOfValues -= max(savedNumberOfValues, iMaxLength);
@@ -902,22 +752,15 @@ unsigned int CTP7Server::handlePatternData(void* iData, void* oData,
 }
 
 bool CTP7Server::setConstantPattern(BufferType b,
-                                    unsigned int linkNumber,
-                                    unsigned int value)
+                                    uint32_t linkNumber,
+                                    uint32_t value)
 {
-  unsigned int address;
-  if(b == inputBuffer && linkNumber < NILinks) {
-    address =  getInputLinkAddress( linkNumber );
-  }
-  else if(b == outputBuffer && linkNumber < NOLinks) {
-    address = getOutputLinkAddress( linkNumber );
-  }
-  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
-    address = getInputLinkAddressS2( linkNumber );
-  }
-  else return false;
-  
-  for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
+  uint32_t addressOffset = linkNumber * LinkBufSize;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
+  uint32_t endAddress = address + LinkBufSize;
+  if(endAddress > getMaxAddress(b)) return false;
+  for(uint32_t i = 0, j = 0; i < NIntsPerLink; i++) {
     localBuffer[j++] = value;
     if(j == PAGE_INTS || i == (NIntsPerLink -1)) {
       if(!putData(address, j, localBuffer)) return false;
@@ -929,24 +772,16 @@ bool CTP7Server::setConstantPattern(BufferType b,
 }
 
 bool CTP7Server::setIncreasingPattern(BufferType b,
-                                      unsigned int linkNumber,
-                                      unsigned int startValue,
-                                      unsigned int increment)
-{
-  unsigned int address;
-  if(b == inputBuffer && linkNumber < NILinks) {
-    address =  getInputLinkAddress( linkNumber );
-  }
-  else if(b == outputBuffer && linkNumber < NOLinks) {
-    address = getOutputLinkAddress( linkNumber );
-  }
-  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
-    address = getInputLinkAddressS2( linkNumber );
-  }
-  else return false;
-  unsigned int value = startValue;
-  std::cout<<"address "<<hex<<address<<std::endl;
-  for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
+                                      uint32_t linkNumber,
+                                      uint32_t startValue,
+                                      uint32_t increment) {
+  uint32_t addressOffset = linkNumber * LinkBufSize;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
+  uint32_t endAddress = address + LinkBufSize;
+  if(endAddress > getMaxAddress(b)) return false;
+  uint32_t value = startValue;
+  for(uint32_t i = 0, j = 0; i < NIntsPerLink; i++) {
     localBuffer[j++] = value;
     if(j == PAGE_INTS || i == (NIntsPerLink - 1)) {
       if(!putData(address, j, localBuffer)) return false;
@@ -959,25 +794,17 @@ bool CTP7Server::setIncreasingPattern(BufferType b,
 }
 
 bool CTP7Server::setDecreasingPattern(BufferType b,
-                                      unsigned int linkNumber,
-                                      unsigned int startValue,
-                                      unsigned int increment)
+                                      uint32_t linkNumber,
+                                      uint32_t startValue,
+                                      uint32_t increment)
 {
-  
-  unsigned int address;
-  
-  if(b == inputBuffer && linkNumber < NILinks) {
-    address =  getInputLinkAddress( linkNumber );
-  }
-  else if(b == outputBuffer && linkNumber < NOLinks) {
-    address = getOutputLinkAddress( linkNumber );
-  }
-  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
-    address = getInputLinkAddressS2( linkNumber );
-  }
-  else return false;
-  unsigned int value = startValue;
-  for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
+  uint32_t addressOffset = linkNumber * LinkBufSize;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
+  uint32_t endAddress = address + LinkBufSize;
+  if(endAddress > getMaxAddress(b)) return false;
+  uint32_t value = startValue;
+  for(uint32_t i = 0, j = 0; i < NIntsPerLink; i++) {
     localBuffer[j++] = value;
     if(j == PAGE_INTS || i == (NIntsPerLink - 1)) {
       if(!putData(address, j, localBuffer)) return false;
@@ -990,65 +817,44 @@ bool CTP7Server::setDecreasingPattern(BufferType b,
 }
 
 bool CTP7Server::setPattern(BufferType b,
-                            unsigned int linkNumber,
-                            unsigned int nInts,
-                            std::vector<unsigned int> values)
-{
-  
-  unsigned int address;
-  
-  if(b == inputBuffer && linkNumber < NILinks) {
-    address =  getInputLinkAddress( linkNumber );
-  }
-  else if(b == outputBuffer && linkNumber < NOLinks) {
-    address = getOutputLinkAddress( linkNumber );
-  }
-  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
-    address = getInputLinkAddressS2( linkNumber );
-  }
-  else return false;
-  
-  for(unsigned int i = 0 , j = 0; i < min((unsigned int) NIntsPerLink, (unsigned int) values.size()); i++) {
+                            uint32_t linkNumber,
+			    uint32_t numberOfValues,
+                            std::vector<uint32_t> values) {
+  uint32_t addressOffset = linkNumber * LinkBufSize;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
+  if(numberOfValues != values.size()) return false;
+  uint32_t endAddress = address + min((uint32_t) NIntsPerLink, (uint32_t) values.size()) * 4;
+  if(endAddress > getMaxAddress(b)) return false;
+  for(uint32_t i = 0 , j = 0; i < min((uint32_t) NIntsPerLink, (uint32_t) values.size()); i++) {
     localBuffer[j++] = values[i];
-    
     //only write if these conditions are satisfied
     //we only want to write at most a page at a time
     if(j == PAGE_INTS || j == values.size() ){
       if(!putData(address, j, localBuffer)) {
-        std::cout<<"Error putting data!!"<<std::endl;
-        return false;
+	std::cout<<"Error putting data!!"<<std::endl;
+	return false;
       }
       address += j*4;
       j = 0;
     }
-    
   }
-  
-  
   return true;
 }
 
 bool CTP7Server::setRandomPattern(BufferType b,
-                                  unsigned int linkNumber,
-                                  unsigned int randomSeed)
+                                  uint32_t linkNumber,
+                                  uint32_t randomSeed)
 {
-  unsigned int address;
-  
-  if(b == inputBuffer && linkNumber < NILinks) {
-    address =  getInputLinkAddress( linkNumber );
-  }
-  else if(b == outputBuffer && linkNumber < NOLinks) {
-    address = getOutputLinkAddress( linkNumber );
-  }
-  else if(b == s2inputBuffer && linkNumber < S2NILinks) {
-    address = getInputLinkAddressS2( linkNumber );
-  }
-  else return false;
-  
+  uint32_t addressOffset = linkNumber * LinkBufSize;
+  uint32_t address = getAddress(b, addressOffset);
+  if(address == BadAddress) return false;
+  uint32_t endAddress = address + LinkBufSize;
+  if(endAddress > getMaxAddress(b)) return false;
   static bool first = true;
   static char state[32] = "This is the state of the random";
   if(first) {
-    unsigned int seed = 0xDEADBEEF;
+    uint32_t seed = 0xDEADBEEF;
     if(randomSeed != 0) seed = randomSeed;
     char* initialState = initstate(seed, state, 32);
     if(initialState == 0) {
@@ -1063,7 +869,7 @@ bool CTP7Server::setRandomPattern(BufferType b,
     // repeated calls yield random patterns
     if(randomSeed != 0) srandom(randomSeed);
   }
-  for(unsigned int i = 0, j = 0; i < NIntsPerLink; i++) {
+  for(uint32_t i = 0, j = 0; i < NIntsPerLink; i++) {
     localBuffer[j++] = rand();
     if(j == PAGE_INTS || i == (NIntsPerLink - 1)) {
       if(!putData(address, j, localBuffer)) return false;
@@ -1096,12 +902,12 @@ void CTP7Server::logTimeStamp()
 
 // This code is for testing on linux or MAC where there will be no libmemsvc.a
 
-#define SIZE_IN_BYTES 0x80000
-#define SIZE_IN_INTS SIZE_IN_BYTES / 4
+#define SIZE_IN_INTS MEMSVC_MAX_WORDS
+#define SIZE_IN_BYTES SIZE_IN_INTS * sizeof(uint32_t)
 #define maxAddress SIZE_IN_BYTES
 
 int memsvc_open(memsvc_handle_t *handle) {
-  *handle = new unsigned int [SIZE_IN_INTS];
+  *handle = new uint32_t [SIZE_IN_INTS];
   if(*handle == 0) {
     return -1;
   }
@@ -1117,24 +923,24 @@ int memsvc_close(memsvc_handle_t *handle) {
 
 // Local implentation of memsvc routines for testing purpose
 int memsvc_read(memsvc_handle_t handle, uint32_t addr, uint32_t words, uint32_t *data) {
-  unsigned int startIndex = addr / 4;
-  unsigned int endIndex = startIndex + words;
+  uint32_t startIndex = addr / 4;
+  uint32_t endIndex = startIndex + words;
   
   if(startIndex > SIZE_IN_INTS || endIndex > SIZE_IN_INTS || words > MEMSVC_MAX_WORDS)
     return -1;
   
-  for(unsigned int i = startIndex; i < endIndex; i++) {
+  for(uint32_t i = startIndex; i < endIndex; i++) {
     data[i - startIndex] = handle[i];
   }
   return 0;
 }
 int memsvc_write(memsvc_handle_t handle, uint32_t addr, uint32_t words, const uint32_t *data) {
-  unsigned int startIndex = addr / 4;
-  unsigned int endIndex = startIndex + words;
+  uint32_t startIndex = addr / 4;
+  uint32_t endIndex = startIndex + words;
   if(startIndex > SIZE_IN_INTS || endIndex > SIZE_IN_INTS || words > MEMSVC_MAX_WORDS) {
     return -1;
   }
-  for(unsigned int i = startIndex; i < endIndex; i++) {
+  for(uint32_t i = startIndex; i < endIndex; i++) {
     handle[i] = data[i - startIndex];
   }
   return 0;

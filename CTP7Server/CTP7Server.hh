@@ -10,6 +10,8 @@
 // revealed to the world.
 
 #include <vector>
+#include <string>
+
 #include <stdint.h>
 #include "CTP7.hh"
 #include "CTP7Addresses.hh"
@@ -19,12 +21,12 @@
 #else
 
 // Below exists for debugging purpose on non embedded computers
-typedef unsigned int *memsvc_handle_t;
+typedef uint32_t *memsvc_handle_t;
 int memsvc_open(memsvc_handle_t *handle);
 int memsvc_close(memsvc_handle_t *handle);
 const char *memsvc_get_last_error(memsvc_handle_t handle);
 
-#define MEMSVC_MAX_WORDS	0x3FFFFFFF
+#define MEMSVC_MAX_WORDS	0x100000
 
 int memsvc_read(memsvc_handle_t handle, uint32_t addr, uint32_t words, uint32_t *data);
 int memsvc_write(memsvc_handle_t handle, uint32_t addr, uint32_t words, const uint32_t *data);
@@ -34,202 +36,172 @@ int memsvc_write(memsvc_handle_t handle, uint32_t addr, uint32_t words, const ui
 #define PAGE_INTS 256
 #define PAGE_SIZE (PAGE_INTS * 4)
 
-#ifdef EMBED
-#define ILinkBaseAddress   0x61000000
-#define OLinkBaseAddress   0x60000000
-#define RegBaseAddress     0x62000000
-#else
-#define ILinkBaseAddress 0
-#define OLinkBaseAddress ILinkBaseAddress+NILinks*LinkBufSize
-#define RegBaseAddress OLinkBaseAddress+NOLinks*LinkBufSize
-#endif
-
 //MaxInputLinkAddress
 #define maxILinkAddress ( ILinkBaseAddress + NILinks * LinkBufSize)
 #define maxOLinkAddress ( OLinkBaseAddress + NOLinks * LinkBufSize)
-
-//Stage 2 links
-#define S2ILinkBaseAddress 0x64000000
-#define S2MaxILinkAddress  ( ILinkBaseAddress + S2NILinks * LinkBufSize)
 
 class CTP7Server : public CTP7 {
     
 public:
     
-    CTP7Server();
-    virtual ~CTP7Server();
+  CTP7Server();
+  virtual ~CTP7Server();
 
-    // Externally accessible functions to get/set on-board buffer
-    bool printBuffer(unsigned int address, unsigned int numberOfValues, unsigned int * buffer);
+  // Externally accessible functions to get/set on-board buffer
+  bool printBuffer(uint32_t address, uint32_t numberOfValues, uint32_t * buffer);
     
-    //Add a Check Link step here
-    unsigned int getInputLinkAddress(unsigned int linkNumber, unsigned int startAddressOffset = 0){
-        return (ILinkBaseAddress + linkNumber * LinkBufSize + startAddressOffset);
-    }
+  // Configuration
 
-    unsigned int getInputLinkAddressS2(unsigned int linkNumber, unsigned int startAddressOffset = 0){
-        return (S2ILinkBaseAddress + linkNumber * LinkBufSize + startAddressOffset);
-    }
-    
-    unsigned int getOutputLinkAddress(unsigned int linkNumber, unsigned int startAddressOffset = 0){
-        return (OLinkBaseAddress + linkNumber * LinkBufSize + startAddressOffset);
-    }
-    
+  bool getConfiguration(std::string o) {o = configuration; return true;}
+  bool setConfiguration(std::string i) {configuration = i; return true;}
 
-    // Configuration
-    unsigned int getConfiguration() {return configuration;}
-    bool setConfiguration(unsigned int input);
-   
-    unsigned int getAddress(BufferType bufferType,
-                            unsigned int linkNumber,
-                            unsigned int addressOffset);
+  uint32_t getValue(BufferType bufferType,
+		    uint32_t addressOffset);
+
+  bool setValue(BufferType bufferType,
+		uint32_t addressOffset,
+		uint32_t value);
     
-    unsigned int getAddress(unsigned int addressOffset) {
-        return getAddress(registerBuffer, 0, addressOffset);
-    }
+  bool getValues(BufferType bufferType,
+		 uint32_t startAddressOffset,
+		 uint32_t numberOfValues,
+		 uint32_t *buffer);
+  
+  bool setValues(BufferType bufferType,
+		 uint32_t startAddressOffset,
+		 uint32_t numberOfValues,
+		 uint32_t *buffer);
+  
+  bool setPattern(BufferType bufferType,
+		  uint32_t linkNumber,
+		  uint32_t numberOfValues,
+		  std::vector<uint32_t> values);
+
+  bool setConstantPattern(BufferType bufferType,
+			  uint32_t linkNumber,
+			  uint32_t value);
+
+  bool setIncreasingPattern(BufferType bufferType,
+			    uint32_t linkNumber,
+			    uint32_t startValue = 0,
+			    uint32_t increment = 1);
     
-    unsigned int getRegister(unsigned int addressOffset) {
-        return getAddress(addressOffset);
-    }
+  bool setDecreasingPattern(BufferType bufferType,
+			    uint32_t linkNumber,
+			    uint32_t startValue = (NIntsPerLink - 1),
+			    uint32_t increment = 1);
     
-    bool dumpContiguousBuffer(BufferType bufferType,
-                              unsigned int linkNumber,
-                              unsigned int startAddressOffset,
-                              unsigned int numberOfValues,
-                              unsigned int *buffer = 0);
-    
-    bool setAddress(BufferType bufferType,
-                    unsigned int linkNumber,
-                    unsigned int addressOffset,
-                    unsigned int value);
-    
-    bool setAddress(unsigned int addressOffset,
-                    unsigned int value) {
-        return setAddress(registerBuffer, 0, addressOffset, value);
-    }
-    
-    bool setRegister(unsigned int addressOffset, unsigned int value) {
-        return setAddress(addressOffset, value);
-    }
-    
-    bool setPattern(BufferType bufferType,
-                    unsigned int linkNumber,
-                    unsigned int nInts,
-                    std::vector<unsigned int> values);
-    
-    bool setConstantPattern(BufferType bufferType,
-                            unsigned int linkNumber,
-                            unsigned int value);
-    
-    bool setIncreasingPattern(BufferType bufferType,
-                              unsigned int linkNumber,
-                              unsigned int startValue = 0,
-                              unsigned int increment = 1);
-    
-    bool setDecreasingPattern(BufferType bufferType,
-                              unsigned int linkNumber,
-                              unsigned int startValue = (NIntsPerLink - 1),
-                              unsigned int increment = 1);
-    
-    bool setRandomPattern(BufferType bufferType,
-                          unsigned int linkNumber,
-                          unsigned int randomSeed);
-  bool getCaptureStatus(unsigned int captureStatus);
-  //static const char * CaptureStatusStrings[] = { "Idle", "Armed", "Done" };
-    bool capture();
-    bool softReset();
-    bool counterReset();
-    bool checkConnection(){return true;}; //these need to be added as methods, current implentation is incorrect
-    bool hardReset(){return true;};//these need to be added as methods
-    unsigned int processTCPMessage(void *iMessage,
-                                   void *oMessage,
-                                   unsigned int iMaxLength,
-                                   unsigned int oMaxLength,
-                                   unsigned int *dataArray=0);
-    
-  bool fillStatusVector(std::vector<unsigned int>& vector);    
-  bool fillTSStatusVector(std::vector<unsigned int>& vector);    
+  bool setRandomPattern(BufferType bufferType,
+			uint32_t linkNumber,
+			uint32_t randomSeed);
+
+  bool getCaptureStatus(CaptureStatus *captureStatus);
+  bool capture();
+  bool softReset();
+  bool counterReset();
+  bool checkConnection(){return true;}; //these need to be added as methods, current implentation is incorrect
+  bool hardReset(){return true;};//these need to be added as methods
+
+  uint32_t processTCPMessage(void *iMessage,
+			     void *oMessage,
+			     uint32_t iMaxLength,
+			     uint32_t oMaxLength,
+			     uint32_t *dataArray=0);
+
   void logTimeStamp();
   
 protected:
     
 private:
     
-    // Unnecessary methods are made private
-    CTP7Server(const CTP7Server&);
-    const CTP7Server& operator=(const CTP7Server&);
+  // Unnecessary methods are made private
+  CTP7Server(const CTP7Server&);
+  const CTP7Server& operator=(const CTP7Server&);
     
-    // Helper functions
+  // Helper functions
 
   bool errorMemSVC;
-    /*
-     * Enumerator for possible functions:
-     */
+  /*
+   * Enumerator for possible functions:
+   */
     
-  enum functionType{
-        GetCaptureStatus,
-        GetLinkID,
-        GetAddress,
-        GetRegister,
-        DumpContiguousBuffer,
-	SetConfiguration,
-        SetAddress,
-        SetRegister,
-        SetPattern,
-        SetConstantPattern,
-        SetIncreasingPattern,
-        SetDecreasingPattern,
-        SetRandomPattern,
-        SoftReset,
-        CounterReset,
-        Capture,
-        CheckConnection,
-        DumpStatusRegisters,
-        DumpTSStatusRegisters,
-        DumpCRCErrors,
-        DumpDecoderErrors,
-        DumpAllLinkIDs,
-        ERROR
-    };
+  enum FunctionType{
+    CheckConnection,
+    GetConfiguration,
+    SetConfiguration,
+    HardReset,
+    SoftReset,
+    CounterReset,
+    GetValue,
+    SetValue,
+    GetValues,
+    SetValues,
+    SetPattern,
+    SetConstantPattern,
+    SetIncreasingPattern,
+    SetDecreasingPattern,
+    SetRandomPattern,
+    Capture,
+    GetCaptureStatus,
+    ERROR
+  };
+  
+  bool parseMessage(char *iMessage,
+		    char *function,
+		    uint32_t &argc,
+		    uint32_t *argv,
+		    char *oMessage);
 
-    bool dumpRegisterArray(std::vector<unsigned int>& vectorOfRegisters, unsigned int nInts, unsigned int *buffer);
+  bool getFunctionType(char *function, 
+		       FunctionType &functionType);
     
-    bool getFunctionType(char function[10], 
-                         functionType &functionType);
+  bool getData(uint32_t address, 
+	       uint32_t numberOfValues, 
+	       uint32_t *buffer);
     
+  bool putData(uint32_t address, 
+	       uint32_t numberOfValues, 
+	       uint32_t *buffer);
     
-    bool getData(unsigned int address, 
-                 unsigned int numberOfValues, 
-                 unsigned int *buffer);
+  bool poke(uint32_t address, 
+	    uint32_t value);
     
-    bool putData(unsigned int address, 
-                 unsigned int numberOfValues, 
-                 unsigned int *buffer);
-    
-    bool poke(unsigned int address, 
-              unsigned int value);
-    
-    unsigned int handlePatternData(void *iData, void *oData, 
-                                   unsigned int iSize, unsigned int oSize);
-    void addMarkers();
-    void addTrailer();
+  uint32_t handlePatternData(void *iData, void *oData, 
+			     uint32_t iSize, uint32_t oSize);
+  void addMarkers();
+  void addTrailer();
 
+  void computeAddresses();
    
-    memsvc_handle_t memHandle;
-    
-    bool verbose;
+  uint32_t getAddress(BufferType b, uint32_t startAddressOffset = 0);
+  uint32_t getMaxAddress(BufferType b);
 
-    unsigned int configuration;
+  memsvc_handle_t memHandle;
     
-    unsigned int localBuffer[PAGE_INTS];
-    
-    unsigned int savedBufferType;
-    unsigned int savedLinkNumber;
-    unsigned int savedNumberOfValues;
-    unsigned int nStatusInts;
-  std::vector<unsigned int> vec;
+  bool verbose;
 
-    std::vector<unsigned int> patternData;
+  std::string configuration;
+    
+  uint32_t localBuffer[PAGE_INTS];
+    
+  uint32_t savedBufferType;
+  uint32_t savedLinkNumber;
+  uint32_t savedNumberOfValues;
+  uint32_t nStatusInts;
+
+  std::vector<InputLinkRegisters> inputLinkRegisterAddresses;
+  LinkAlignmentRegisters linkAlignmentRegisterAddresses;
+  InputCaptureRegisters inputCaptureRegisterAddresses;
+  DAQSpyCaptureRegisters daqSpyCaptureRegisterAddresses;
+  DAQRegisters daqRegisterAddresses;
+  AMC13Registers amc13RegisterAddresses;
+  TCDSRegisters tcdsRegisterAddresses;
+  TCDSMonitorRegisters tcdsMonitorRegisterAddresses;
+  std::vector<GTHRegisters> gthRegisterAddresses;
+  std::vector<QPLLRegisters> qpllRegisterAddresses;
+  MiscRegisters miscRegisterAddresses;
+
+  std::vector<uint32_t> patternData;
     
 };
 
