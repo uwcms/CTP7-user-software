@@ -1,6 +1,8 @@
 #ifndef CTP7_hh
 #define CTP7_hh
 
+#include <stdint.h>
+
 #include <vector>
 #include <string>
 

@@ -3,29 +3,30 @@
 
 ifdef PETA
 
-PETADIST=$(PETALINUX)/software/petalinux-dist
+PETA_ROOTFS=/afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7/build/linux/rootfs
+
 PETACTP7MEMSVC=../libmemsvc/
 CC=/afs/hep.wisc.edu/cms/sw/Xilinx_2014_2/SDK/2014.2/gnu/arm/lin/bin/arm-xilinx-linux-gnueabi-c++
 
 CXX=$(CC)
 
 CFLAGS=-fomit-frame-pointer -pipe -fno-common -fno-builtin \
-       -Wall -Werror \
+       -Wall \
        -march=armv7-a -mfpu=neon -mfloat-abi=softfp \
        -mthumb-interwork -mtune=cortex-a9 \
        -DEMBED -Dlinux -D__linux__ -Dunix -DLINUX -fPIC \
-       -I$(PETADIST)/stage/include \
-       -I$(PETADIST)/stage/usr/include \
-       -I$(PETADIST)/stage/usr/local/include \
-       -I$(PETADIST) -I$(PETADIST)/include \
-       -I$(PETACTP7MEMSVC) \
-       -I$(RCTCOREDIR)/include 
+       -I$(PETA_ROOTFS)/stage/include \
+       -I$(PETA_ROOTFS)/stage/usr/include \
+       -I$(PETA_ROOTFS)/stage/usr/local/include \
+       -I$(PETA_ROOTFS)/libs/libmemsvc
 
-LDFLAGS= -L$(PETADIST)/lib -L$(PETADIST)/stage/lib \
-         -L$(PETADIST)/stage/usr/lib -L$(PETADIST)/stage/usr/local/lib \
-         -L$(PETACTP7MEMSVC) -lmemsvc \
-	 -lpthread \
-         -static
+LDFLAGS=-L$(PETA_ROOTFS)/targetroot/lib \
+	-L$(PETA_ROOTFS)/stage/lib \
+	-L$(PETA_ROOTFS)/targetroot/usr/lib \
+	-L$(PETA_ROOTFS)/stage/usr/lib \
+        -lmemsvc -lpthread
+
+BUILDINFO_PATH=../../apps/buildinfo
 
 LIBDIR = ../../pl-lib
 BINDIR = ../../pl-bin
@@ -43,5 +44,3 @@ endif
 
 
 include ../../mkdep_makefile/config
-
-

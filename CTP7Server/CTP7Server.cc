@@ -152,6 +152,7 @@ uint32_t CTP7Server::getAddress(BufferType bufferType, uint32_t offset) {
   case(unnamed):
     return offset; // This is super dangerous, but we use it for kludging
   }
+  return 0;
 }
 
 uint32_t CTP7Server::getMaxAddress(BufferType bufferType) {
@@ -190,6 +191,7 @@ uint32_t CTP7Server::getMaxAddress(BufferType bufferType) {
     // This is super dangerous, but we use it for kludging
     return MEMSVC_MAX_WORDS * sizeof(uint32_t);
   }
+  return 0;
 }
 
 // Memory Access
@@ -340,7 +342,7 @@ uint32_t CTP7Server::processTCPMessage(void *iData,
   // Add null termination as we expect a message string
   iMessage[iMaxLength] = 0;
 
-  char *function;
+  char *function = iMessage;
   uint32_t argc = 0;
   uint32_t argv[6];
   if(!parseMessage(iMessage, function, argc, argv, oMessage)) {
