@@ -31,18 +31,14 @@ CTP7Server::~CTP7Server() {
 
 void CTP7Server::computeAddresses() {
   // Local array of maximum size needed of all register groups
-  uint32_t nAddresses = sizeof(TCDSRegisters) / sizeof(uint32_t);
+  uint32_t nAddresses = sizeof(GTHRegisters) / sizeof(uint32_t);
   uint32_t address[nAddresses];  
   // InputLinkRegister Addresses
   nAddresses= sizeof(InputLinkRegisters) / sizeof(uint32_t);
   for(uint32_t iLink = 0; iLink < NILinks; iLink++) {
     for(uint32_t i = 0; i < nAddresses; i++) {
       address[i] = InputLinkRegistersBaseAddress + (iLink * nAddresses + i) * sizeof(uint32_t);
-    cout << showbase << internal << setfill('0') << setw(10) << hex
-	 << address[i] << endl;
     }
-    cout << showbase << internal << setfill('0') << setw(10) << hex
-	 << address << endl;
     InputLinkRegisters a;
     memcpy(&a.LINK_STATUS_REG, &address[0], sizeof(InputLinkRegisters));
     inputLinkRegisterAddresses.push_back(a);
@@ -231,7 +227,6 @@ bool CTP7Server::putData(uint32_t address,
   while(wordsToGo > 0) {
     int words = 1;
     writeBuffer = buffer[wordsDone];
-    //std::cout<<"wordsDone "<<wordsDone<< "  "<< writeBuffer<<std::endl;
     if(memsvc_write(memHandle, address, words, &writeBuffer) != 0) {
 #ifdef EMBED
       printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
