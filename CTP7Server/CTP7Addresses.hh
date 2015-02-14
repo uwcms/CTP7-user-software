@@ -11,9 +11,10 @@
 #define ILinkBaseAddress                  0x61000000
 #endif
 
+#define CRCBC0ResetAddress                0x62010800
 #define OLinkBaseAddress                  0x60000000
-#define DAQBufferBaseAddress              0x63000000
-#define TCDSBufferBaseAddress             0x65000000
+#define TCDSBufferBaseAddress             0x63000000
+#define DAQBufferBaseAddress              0x65000000
 
 #define InputLinkRegistersBaseAddress     0x62000000
 #define LinkAlignmentRegistersBaseAddress 0x62010000

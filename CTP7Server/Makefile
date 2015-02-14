@@ -1,10 +1,6 @@
 # Cross-compiling to a Petalinux target
 # TODO Fix make clean so that it will rebuild the libraries. Currently it seems not to be doing this.
 
-LIBDIR = .
-BINDIR = .
-SHLIB=
-
 ifdef PETA
 
 PETA_ROOTFS=/afs/hep.wisc.edu/home/uwhepfpga/petalinux-v2013.10-final/CTP7/build/linux/rootfs
@@ -32,13 +28,19 @@ LDFLAGS=-L$(PETA_ROOTFS)/targetroot/lib \
 
 BUILDINFO_PATH=../../apps/buildinfo
 
+LIBDIR = ../../pl-lib
+BINDIR = ../../pl-bin
+SHLIB=
 
 else
 
 CFLAGS = -g 
-LDFLAGS = -L $(LIBDIR) -lCTP7Server -lpthread
+LIBDIR = ../../lib
+BINDIR = ../../bin
+SHLIB =
+LDFLAGS = -L $(LIBDIR) -lCTP7Server
 CXXFLAGS = $(CFLAGS)
-
 endif
+
 
 include ../../mkdep_makefile/config

@@ -1,9 +1,9 @@
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
 #include <iostream>
 #include <iomanip>
 
@@ -154,38 +154,38 @@ uint32_t CTP7Server::getAddress(BufferType bufferType, uint32_t offset) {
 uint32_t CTP7Server::getMaxAddress(BufferType bufferType) {
   switch(bufferType) {
   case(inputBuffer):
-    return ILinkBaseAddress + NILinks * LinkBufSize;
+    return ILinkBaseAddress + NILinks * LinkBufSize+1;
   case(outputBuffer):
-    return OLinkBaseAddress + NOLinks * LinkBufSize;
+    return OLinkBaseAddress + NOLinks * LinkBufSize+1;
   case(daqBuffer):
-    return DAQBufferBaseAddress + NIntsInDAQBuffer * sizeof(uint32_t);
+    return DAQBufferBaseAddress + NIntsInDAQBuffer * sizeof(uint32_t)+1;
   case(tcdsBuffer):
-    return TCDSBufferBaseAddress + NIntsInTCDSBuffer * sizeof(uint32_t);
+    return TCDSBufferBaseAddress + NIntsInTCDSBuffer * sizeof(uint32_t)+1;
   case(inputLinkRegisters):
-    return InputLinkRegistersBaseAddress + NILinks * sizeof(InputLinkRegisters);
+    return InputLinkRegistersBaseAddress + NILinks * sizeof(InputLinkRegisters)+1;
   case(linkAlignmentRegisters):
-    return LinkAlignmentRegistersBaseAddress + sizeof(LinkAlignmentRegisters);
+    return LinkAlignmentRegistersBaseAddress + sizeof(LinkAlignmentRegisters)+1;
   case(inputCaptureRegisters):
-    return InputCaptureRegistersBaseAddress + sizeof(InputCaptureRegisters);
+    return InputCaptureRegistersBaseAddress + sizeof(InputCaptureRegisters)+1;
   case(daqSpyCaptureRegisters):
-    return DAQSpyCaptureRegistersBaseAddress + sizeof(DAQSpyCaptureRegisters);
+    return DAQSpyCaptureRegistersBaseAddress + sizeof(DAQSpyCaptureRegisters)+1;
   case(daqRegisters):
-    return DAQRegistersBaseAddress + sizeof(DAQRegisters);
+    return DAQRegistersBaseAddress + sizeof(DAQRegisters)+1;
   case(amc13Registers):
-    return AMC13RegistersBaseAddress + sizeof(AMC13Registers);
+    return AMC13RegistersBaseAddress + sizeof(AMC13Registers)+1;
   case(tcdsRegisters):
-    return TCDSRegistersBaseAddress + sizeof(TCDSRegisters);
+    return TCDSRegistersBaseAddress + sizeof(TCDSRegisters)+1;
   case(tcdsMonitorRegisters):
-    return TCDSMonitorRegistersBaseAddress + sizeof(TCDSMonitorRegisters);
+    return TCDSMonitorRegistersBaseAddress + sizeof(TCDSMonitorRegisters)+1;
   case(gthRegisters):
-    return GTHRegistersBaseAddress + (NILinks + NOLinks) * sizeof(GTHRegisters);
+    return GTHRegistersBaseAddress + (NILinks + NOLinks) * sizeof(GTHRegisters)+1;
   case(qpllRegisters):
-    return QPLLRegistersBaseAddress + (NILinks + NOLinks) * sizeof(QPLLRegisters);
+    return QPLLRegistersBaseAddress + (NILinks + NOLinks) * sizeof(QPLLRegisters)+1;
   case(miscRegisters):
-    return MiscRegistersBaseAddress + sizeof(MiscRegisters);
+    return MiscRegistersBaseAddress + sizeof(MiscRegisters)+1;
   case(unnamed):
     // This is super dangerous, but we use it for kludging
-    return MEMSVC_MAX_WORDS * sizeof(uint32_t);
+    return MEMSVC_MAX_WORDS * sizeof(uint32_t)+1;
   }
   return 0;
 }
@@ -557,11 +557,35 @@ bool CTP7Server::counterReset()
 }
 
 /*
- * Soft Reset for CTP7 Stage1 Firmware V1
+ * Soft Reset for CTP7 Stage1 Firmware Gen 2
+ * Resets Links and Errors
  */
 
 bool CTP7Server::softReset()
 {
+
+  for(uint32_t i = 0; i < gthRegisterAddresses.size(); i++){
+    std::cout<<"i: "<<std::hex<< gthRegisterAddresses.at(i).GTH_RST_REG<<std::endl;
+    if(!poke( gthRegisterAddresses.at(i).GTH_RST_REG , 0x3))
+       return false;
+  }
+
+  sleep(1); 
+
+  if(!poke( LinkAlignmentRegistersBaseAddress , 0x1 )){
+    return false; 
+  }
+
+  sleep(1); 
+  
+  if(!poke( CRCBC0ResetAddress , 0x3 )){
+    return false;
+  }
+  
+  if(getValue(linkAlignmentRegisters,0x8)!=0){
+    return false;
+  }
+  
   return true;
 }
 
@@ -588,6 +612,8 @@ bool CTP7Server::getFunctionType(char* function, FunctionType &functionType)
     functionType = Capture;
   else if(strcmp(function, "getConfiguration") == 0)
     functionType = GetConfiguration;
+  else if(strcmp(function, "getCaptureStatus") == 0)
+    functionType = GetCaptureStatus;
   else if(strcmp(function, "setConfiguration") == 0)
     functionType = SetConfiguration;
   else if(strcmp(function, "setConstantPattern") == 0)

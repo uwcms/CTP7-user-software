@@ -216,6 +216,7 @@ public:
 			 uint32_t numberOfValues, 
 			 uint32_t *buffer) = 0;
 
+
   // Generic functions for setting data
   // One should avoid using these functions in favor of specific control 
   // related functions declared above
