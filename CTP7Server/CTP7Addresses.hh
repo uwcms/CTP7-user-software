@@ -45,6 +45,7 @@
 #define GTHRegistersBaseAddress           TCDSMonitorRegistersBaseAddress+sizeof(TCDSMonitorRegisters)
 #define QPLLRegistersBaseAddress          GTHRegistersBaseAddress+sizeof(GTHRegisters)*NILinks
 #define MiscRegistersBaseAddress          QPLLRegistersBaseAddress+sizeof(QPLLRegisters)*(NILinks+NOLinks)/4
+#define CRCBC0ResetAddress                MiscRegistersBaseAddress+sizeof(MiscRegisters)
 
 #endif
 

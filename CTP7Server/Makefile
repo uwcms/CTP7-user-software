@@ -38,7 +38,7 @@ CFLAGS = -g
 LIBDIR = ../../lib
 BINDIR = ../../bin
 SHLIB =
-LDFLAGS = -L $(LIBDIR) -lCTP7Server
+LDFLAGS = -L $(LIBDIR) -lCTP7Server -lpthread
 CXXFLAGS = $(CFLAGS)
 endif
 

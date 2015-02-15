@@ -565,7 +565,6 @@ bool CTP7Server::softReset()
 {
 
   for(uint32_t i = 0; i < gthRegisterAddresses.size(); i++){
-    std::cout<<"i: "<<std::hex<< gthRegisterAddresses.at(i).GTH_RST_REG<<std::endl;
     if(!poke( gthRegisterAddresses.at(i).GTH_RST_REG , 0x3))
        return false;
   }
