@@ -154,38 +154,38 @@ uint32_t CTP7Server::getAddress(BufferType bufferType, uint32_t offset) {
 uint32_t CTP7Server::getMaxAddress(BufferType bufferType) {
   switch(bufferType) {
   case(inputBuffer):
-    return ILinkBaseAddress + NILinks * LinkBufSize+1;
+    return ILinkBaseAddress + NILinks * LinkBufSize;
   case(outputBuffer):
-    return OLinkBaseAddress + NOLinks * LinkBufSize+1;
+    return OLinkBaseAddress + NOLinks * LinkBufSize;
   case(daqBuffer):
-    return DAQBufferBaseAddress + NIntsInDAQBuffer * sizeof(uint32_t)+1;
+    return DAQBufferBaseAddress + NIntsInDAQBuffer * sizeof(uint32_t);
   case(tcdsBuffer):
-    return TCDSBufferBaseAddress + NIntsInTCDSBuffer * sizeof(uint32_t)+1;
+    return TCDSBufferBaseAddress + NIntsInTCDSBuffer * sizeof(uint32_t);
   case(inputLinkRegisters):
-    return InputLinkRegistersBaseAddress + NILinks * sizeof(InputLinkRegisters)+1;
+    return InputLinkRegistersBaseAddress + NILinks * sizeof(InputLinkRegisters);
   case(linkAlignmentRegisters):
-    return LinkAlignmentRegistersBaseAddress + sizeof(LinkAlignmentRegisters)+1;
+    return LinkAlignmentRegistersBaseAddress + sizeof(LinkAlignmentRegisters);
   case(inputCaptureRegisters):
-    return InputCaptureRegistersBaseAddress + sizeof(InputCaptureRegisters)+1;
+    return InputCaptureRegistersBaseAddress + sizeof(InputCaptureRegisters);
   case(daqSpyCaptureRegisters):
-    return DAQSpyCaptureRegistersBaseAddress + sizeof(DAQSpyCaptureRegisters)+1;
+    return DAQSpyCaptureRegistersBaseAddress + sizeof(DAQSpyCaptureRegisters);
   case(daqRegisters):
-    return DAQRegistersBaseAddress + sizeof(DAQRegisters)+1;
+    return DAQRegistersBaseAddress + sizeof(DAQRegisters);
   case(amc13Registers):
-    return AMC13RegistersBaseAddress + sizeof(AMC13Registers)+1;
+    return AMC13RegistersBaseAddress + sizeof(AMC13Registers);
   case(tcdsRegisters):
-    return TCDSRegistersBaseAddress + sizeof(TCDSRegisters)+1;
+    return TCDSRegistersBaseAddress + sizeof(TCDSRegisters);
   case(tcdsMonitorRegisters):
-    return TCDSMonitorRegistersBaseAddress + sizeof(TCDSMonitorRegisters)+1;
+    return TCDSMonitorRegistersBaseAddress + sizeof(TCDSMonitorRegisters);
   case(gthRegisters):
-    return GTHRegistersBaseAddress + (NILinks + NOLinks) * sizeof(GTHRegisters)+1;
+    return GTHRegistersBaseAddress + (NILinks + NOLinks) * sizeof(GTHRegisters);
   case(qpllRegisters):
-    return QPLLRegistersBaseAddress + (NILinks + NOLinks) * sizeof(QPLLRegisters)+1;
+    return QPLLRegistersBaseAddress + (NILinks + NOLinks) * sizeof(QPLLRegisters);
   case(miscRegisters):
-    return MiscRegistersBaseAddress + sizeof(MiscRegisters)+1;
+    return MiscRegistersBaseAddress + sizeof(MiscRegisters);
   case(unnamed):
     // This is super dangerous, but we use it for kludging
-    return MEMSVC_MAX_WORDS * sizeof(uint32_t)+1;
+    return MEMSVC_MAX_WORDS * sizeof(uint32_t);
   }
   return 0;
 }
@@ -760,7 +760,7 @@ uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
     savedNumberOfValues -= max(savedNumberOfValues, iMaxLength);
     
     if(savedNumberOfValues == 0) {
-      if(setPattern((BufferType) savedBufferType, savedLinkNumber, savedNumberOfValues, patternData))
+      if(setPattern((BufferType) savedBufferType, savedLinkNumber, patternData.size(), patternData))
         strcpy(oMessage, "SUCCESS");
       else
         strcpy(oMessage, "ERROR");
@@ -786,6 +786,7 @@ bool CTP7Server::setConstantPattern(BufferType b,
     localBuffer[j++] = value;
     if(j == PAGE_INTS || i == (NIntsPerLink -1)) {
       if(!putData(address, j, localBuffer)) return false;
+      if(!printBuffer(address, j, localBuffer)) return false;
       address += j*4;
       j = 0;
     }
