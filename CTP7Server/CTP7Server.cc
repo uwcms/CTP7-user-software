@@ -331,7 +331,7 @@ uint32_t CTP7Server::processTCPMessage(void *iData,
   
   // If prior call determined that we are getting integer data handle it
   if(savedNumberOfValues > 0) {
-    return handlePatternData(iData, oData, iMaxLength/4, oMaxLength);
+    return handlePatternData(iData, oData, iMaxLength, oMaxLength);
   }
   
   // Add null termination as we expect a message string
@@ -736,8 +736,8 @@ uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
   
   char *oMessage = (char *) oData;
   
-  // For first call iData should be NULL here as we are only inputting a message
   if(iData == NULL) {
+    // For first call iData should be NULL here as we are only inputting a message
     patternData.clear();
     uint32_t *argv = (uint32_t*) oData;
     savedBufferType = argv[0];
@@ -745,19 +745,28 @@ uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
     savedNumberOfValues = argv[2];
     return 0;
   }
-  
-  // Second call on sends a buffer of ints
-  // iData should be non NULL here
-  
-  if(iData != NULL){
+  else {
+    // Second call on sends a buffer of ints
+    // iData should be non NULL here
+    
+    uint32_t nIntsSent = iMaxLength / sizeof(uint32_t);
+    if(nIntsSent > savedNumberOfValues) {
+      std::cout << "Houston: We have a problem - Too much data received = " << nIntsSent << " - truncating"<< std::endl;
+      nIntsSent = savedNumberOfValues;
+    }
+    uint32_t remainder = iMaxLength % sizeof(uint32_t);
+    if(remainder != 0) {
+      std::cout << "Houston: We have a problem - Data not aligned by words - remainder = " << remainder << std::endl;
+    }
+    
     uint32_t *intValues = (uint32_t*) iData;
-    for(uint32_t i = 0; i < max(savedNumberOfValues, iMaxLength); i++) {
+    for(uint32_t i = 0; i < nIntsSent; i++) {
       patternData.push_back(intValues[i]);
     }
 
     //Adjust Saved Number Of Values
     //-->This will check to see if more values need to be sent
-    savedNumberOfValues -= max(savedNumberOfValues, iMaxLength);
+    savedNumberOfValues -= nIntsSent;
     
     if(savedNumberOfValues == 0) {
       if(setPattern((BufferType) savedBufferType, savedLinkNumber, patternData.size(), patternData))
@@ -767,7 +776,6 @@ uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
     }
     else
       strcpy(oMessage, "SEND_MORE_PATTERN_DATA");
-    
   }
   
   return strlen(oMessage);
