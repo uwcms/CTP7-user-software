@@ -445,7 +445,7 @@ uint32_t CTP7Server::processTCPMessage(void *iData,
         strcpy(oMessage, "ERROR_WRONG_NARGS");
       else
         if(handlePatternData(NULL, (void *) &argv, 0, sizeof(argv)) == 0)
-          strcpy(oMessage, "READY_FOR_PATTERN_DATA");
+	  sprintf(oMessage, "READY_FOR_PATTERN_DATA: %lX", savedNumberOfValues*sizeof(uint32_t));
         else
           strcpy(oMessage, "FAILED__NOT_READY_FOR_PATTERN_DATA");
       break;

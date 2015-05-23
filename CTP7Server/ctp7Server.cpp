@@ -48,11 +48,18 @@ void server(int *sdPtr) {
     unsigned int outgoing_uint_buffer[MAX_BUFFER_SIZE / 4];
   };
 
+  ssize_t bytes_expected = 0;
+  ssize_t bytes_received = 0;
   while(true) {
     std::cout << "Waiting to receive data..."  << std::endl;
 
-    ssize_t bytes_received = 
-      recv(sd, incoming_data_buffer,MAX_BUFFER_SIZE, 0);
+    if(bytes_expected == 0) {
+      bytes_received = recv(sd, incoming_data_buffer, MAX_BUFFER_SIZE, 0);
+    }
+    else {
+      bytes_received = recv(sd, incoming_data_buffer, bytes_expected, MSG_WAITALL);
+      bytes_expected = 0;
+    }
 
     // If no data arrives, the program will just wait here 
     // until some data arrives.
@@ -70,6 +77,17 @@ void server(int *sdPtr) {
 					 outgoing_data_buffer, 
 					 bytes_received,
 					 MAX_BUFFER_SIZE);
+	len = strlen("READY_FOR_PATTERN_DATA");
+	if(strncmp(outgoing_char_buffer, "READY_FOR_PATTERN_DATA", len) == 0) {
+	  outgoing_char_buffer[len] = 0;
+	  if(sscanf(&outgoing_char_buffer[len+1], "%lX", &bytes_expected) == 1) {
+	    std::cout << "Expecting pattern of " << std::dec << bytes_expected << std::endl;
+	  }
+	  else {
+	    std::cerr << "Failed to ready bytes_expected" << std::endl;
+	    bytes_expected = 0;
+	  }
+	}
 	myMutex.unlock();
 
 	std::cout << "Sending back a message of length ..." << len 
