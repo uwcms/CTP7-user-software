@@ -203,6 +203,7 @@ bool CTP7Server::getData(uint32_t address,
     //int words = min(wordsToGo, MEMSVC_MAX_WORDS);
     int words = 1; 
     if(memsvc_read(memHandle, address, words, &buffer[wordsDone]) != 0) {
+      std::cout<<"address "<< address<<" words "<< words<<std::endl;
       printf("Memory access failed: %s\n",memsvc_get_last_error(memHandle));
       errorMemSVC = true;
       return false;
