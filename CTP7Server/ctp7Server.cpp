@@ -194,7 +194,7 @@ int main(int argc, char **argv)
       std::cerr << "pthread_create returns " << status << std::endl;
       exit(EXIT_FAILURE);
     }
-
+    pthread_join(thread, NULL);
   }
 
   freeaddrinfo(host_info_list);
