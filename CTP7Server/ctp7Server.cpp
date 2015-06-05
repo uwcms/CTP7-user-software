@@ -77,10 +77,11 @@ void server(int *sdPtr) {
 					 outgoing_data_buffer, 
 					 bytes_received,
 					 MAX_BUFFER_SIZE);
-	len = strlen("READY_FOR_PATTERN_DATA");
-	if(strncmp(outgoing_char_buffer, "READY_FOR_PATTERN_DATA", len) == 0) {
-	  outgoing_char_buffer[len] = 0;
-	  if(sscanf(&outgoing_char_buffer[len+1], "%lX", &bytes_expected) == 1) {
+	int tmpLen = strlen("READY_FOR_PATTERN_DATA");
+	if(strncmp(outgoing_char_buffer, "READY_FOR_PATTERN_DATA", tmpLen) == 0) {
+	  len = tmpLen;
+	  outgoing_char_buffer[tmpLen] = 0;
+	  if(sscanf(&outgoing_char_buffer[tmpLen+1], "%lX", &bytes_expected) == 1) {
 	    std::cout << "Expecting pattern of " << std::dec << bytes_expected << std::endl;
 	  }
 	  else {
