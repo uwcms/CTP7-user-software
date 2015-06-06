@@ -184,8 +184,7 @@ uint32_t CTP7Server::getMaxAddress(BufferType bufferType) {
   case(miscRegisters):
     return MiscRegistersBaseAddress + sizeof(MiscRegisters);
   case(unnamed):
-    // This is super dangerous, but we use it for kludging
-    return MEMSVC_MAX_WORDS * sizeof(uint32_t);
+    return MEMSVC_MAX_WORDS * sizeof(uint32_t);     // This is super dangerous, but we use it for kludging
   }
   return 0;
 }
@@ -851,7 +850,10 @@ bool CTP7Server::setPattern(BufferType b,
                             uint32_t linkNumber,
 			    uint32_t numberOfValues,
                             std::vector<uint32_t> values) {
-  uint32_t addressOffset = linkNumber * LinkBufSize;
+  uint32_t addressOffset = linkNumber;
+  if(b == CTP7::inputBuffer || b == CTP7::outputBuffer) {
+    addressOffset = linkNumber * LinkBufSize;
+  }
   uint32_t address = getAddress(b, addressOffset);
   if(address == BadAddress) return false;
   if(numberOfValues != values.size()) return false;
