@@ -188,13 +188,20 @@ int main(int argc, char **argv)
 	std::cout << "Connection accepted. Using new socketfd : "  <<  new_sd 
 		  << std::endl;
       }
-
-    int status = pthread_create(&thread, NULL, PTHREAD_FUNC(server), &new_sd);
+    pthread_attr_t attributes;
+    if(pthread_attr_init(&attributes) != 0) {
+      std::cerr << "pthread_attr_init failed" << status << std::endl;
+      exit(EXIT_FAILURE);
+    }
+    if(pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED) != 0) {
+      std::cerr << "pthread_attr_setdetachstate failed" << status << std::endl;
+      exit(EXIT_FAILURE);
+    }
+    int status = pthread_create(&thread, &attributes, PTHREAD_FUNC(server), &new_sd);
     if(status != 0) {
       std::cerr << "pthread_create returns " << status << std::endl;
       exit(EXIT_FAILURE);
     }
-    pthread_join(thread, NULL);
   }
 
   freeaddrinfo(host_info_list);

@@ -12,6 +12,10 @@ using namespace std;
 #include "CTP7.hh"
 #include "CTP7Server.hh"
 
+#include "Mutex.hh"
+
+Mutex multiMessageMutex;
+
 CTP7Server::CTP7Server() : verbose(false),
 			   savedBufferType(0),
 			   savedLinkNumber(0),
@@ -742,6 +746,7 @@ uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
     savedBufferType = argv[0];
     savedLinkNumber = argv[1];
     savedNumberOfValues = argv[2];
+    multiMessageMutex.lock();
     return 0;
   }
   else {
@@ -772,6 +777,7 @@ uint32_t CTP7Server::handlePatternData(void* iData, void* oData,
         strcpy(oMessage, "SUCCESS");
       else
         strcpy(oMessage, "ERROR");
+      multiMessageMutex.unlock();
     }
     else
       strcpy(oMessage, "SEND_MORE_PATTERN_DATA");
